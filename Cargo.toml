@@ -7,6 +7,7 @@ edition = "2021"
 anyhow = "1.0.70"
 chrono = "0.4.24"
 chrono-tz = "0.8.1"
+clap = { version = "4.2.2", features = ["derive"] }
 hex = "0.4.3"
 once_cell = "1.17.1"
 regex = "1.7.3"
