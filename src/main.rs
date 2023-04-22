@@ -23,7 +23,8 @@ fn main() -> Result<(), anyhow::Error> {
     match &args.command {
         Some(Commands::Set {}) => {}
         _ => {
-            args.check_exists_set()?;
+            // Validate arguments
+            args.valdate()?;
 
             // Create a struct as parsed types from command args
             let parsed_args = ParsedArgs {

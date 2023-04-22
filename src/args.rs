@@ -1,16 +1,11 @@
 use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
-use clap::{ArgAction, ArgGroup, Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand};
 
 use crate::{exchange::*, output::*, pick::*, unit::*};
 
 #[derive(Debug, Parser)]
-#[command(author, version, about, long_about = None,
-    group(ArgGroup::new("term1").multiple(false).args(["past", "term_start"])),
-    group(ArgGroup::new("term2").multiple(false).args(["past", "term_end"])),
-    group(ArgGroup::new("term3").multiple(false).args(["range", "term_start"])),
-    group(ArgGroup::new("term4").multiple(false).args(["range", "term_end"])),
-)]
+#[command(author, version, about, long_about = None)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Option<Commands>,
@@ -55,7 +50,30 @@ pub struct Cli {
 }
 
 impl Cli {
-    pub fn check_exists_set(&self) -> Result<(), Error> {
+    pub fn valdate(&self) -> Result<(), Error> {
+        let mut errors: Vec<String> = Vec::new();
+
+        if let Err(e) = self.check_exists_command_set() {
+            errors.push(format!("- {e}"));
+        }
+
+        if let Err(e) = self.check_argument_consistency() {
+            errors.push(format!("- {e}"));
+        }
+
+        if !errors.is_empty() {
+            errors.push(format!(
+                "Failed to parse arguments due to {} error(s)",
+                errors.len()
+            ));
+            errors.rotate_right(1);
+            return Err(anyhow!(errors.join("\n")));
+        }
+
+        Ok(())
+    }
+
+    fn check_exists_command_set(&self) -> Result<(), Error> {
         if self.past.unwrap() {
             ensure!(
                 self.range.is_some(),
@@ -86,6 +104,38 @@ impl Cli {
 
         Ok(())
     }
+
+    fn check_argument_consistency(&self) -> Result<(), Error> {
+        if self.past.unwrap() {
+            ensure!(
+                self.term_start.is_none(),
+                "The argument `--term-start ` cannot be used with `--past`."
+            );
+        }
+
+        if self.past.unwrap() {
+            ensure!(
+                self.term_end.is_none(),
+                "The argument `--term-end ` cannot be used with `--past`."
+            );
+        }
+
+        if self.range.is_some() {
+            ensure!(
+                self.term_start.is_none(),
+                "The argument `--term-start ` cannot be used with `--range`."
+            );
+        }
+
+        if self.range.is_some() {
+            ensure!(
+                self.term_end.is_none(),
+                "The argument `--term-end ` cannot be used with `--range`."
+            );
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -105,27 +155,3 @@ pub struct ParsedArgs {
     pub pick: Vec<Pick>,
     pub output: OutputKind,
 }
-
-// #[derive(Debug, Args)]
-// #[group(multiple = true)]
-// struct RelativeTerm {
-//     /// Specify if you want the latest data for the past "range" (cannot be used with `--term-start/end`)
-//     #[arg(long, action = ArgAction::SetTrue)]
-//     pub past: Option<bool>,
-
-//     /// Range of time periods from current to past (`--past` is required)
-//     #[arg(long)]
-//     pub range: Option<String>,
-// }
-
-// #[derive(Debug, Args)]
-// #[group(multiple = true)]
-// struct AbsoluteTerm {
-//     /// Start of data period (cannot be used with `--past`)
-//     #[arg(long)]
-//     pub term_start: Option<String>,
-
-//     /// End of data period (cannot be used with `--past`)
-//     #[arg(long)]
-//     pub term_end: Option<String>,
-// }
