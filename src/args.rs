@@ -1,3 +1,4 @@
+use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
 use clap::{ArgAction, ArgGroup, Parser, Subcommand};
 
@@ -53,10 +54,56 @@ pub struct Cli {
     pub output: OutputKind,
 }
 
+impl Cli {
+    pub fn check_exists_set(&self) -> Result<(), Error> {
+        if self.past.unwrap() {
+            ensure!(
+                self.range.is_some(),
+                "If you use `--past`, you must also use `--range`."
+            );
+        }
+
+        if self.range.is_some() {
+            ensure!(
+                self.past.unwrap(),
+                "If you use `--range`, you must also use `--past`."
+            );
+        }
+
+        if self.term_start.is_some() {
+            ensure!(
+                self.term_end.is_some(),
+                "If you use `--term-start`, you must also use `--term-end`."
+            );
+        }
+
+        if self.term_end.is_some() {
+            ensure!(
+                self.term_start.is_some(),
+                "If you use `--term-end`, you must also use `--term-start`."
+            );
+        }
+
+        Ok(())
+    }
+}
+
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Start interactive mode to build a command with all options (there is no valid option)
     Set {},
+}
+
+#[derive(Debug, Clone)]
+pub struct ParsedArgs {
+    pub exchange: Exchange,
+    pub past: bool,
+    pub range: Option<DurationAndUnit>,
+    pub term_start: Option<DateTime<Utc>>,
+    pub term_end: Option<DateTime<Utc>>,
+    pub candlestick: DurationAndUnit,
+    pub pick: Vec<Pick>,
+    pub output: OutputKind,
 }
 
 // #[derive(Debug, Args)]
@@ -82,15 +129,3 @@ pub enum Commands {
 //     #[arg(long)]
 //     pub term_end: Option<String>,
 // }
-
-#[derive(Debug, Clone)]
-pub struct ParsedArgs {
-    pub exchange: Exchange,
-    pub past: bool,
-    pub range: Option<DurationAndUnit>,
-    pub term_start: Option<DateTime<Utc>>,
-    pub term_end: Option<DateTime<Utc>>,
-    pub candlestick: DurationAndUnit,
-    pub pick: Vec<Pick>,
-    pub output: OutputKind,
-}
