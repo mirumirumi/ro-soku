@@ -1,6 +1,5 @@
 use std::{num::ParseIntError, str::FromStr};
 
-use anyhow::Result;
 use thiserror::Error;
 
 #[derive(Debug, Clone)]
@@ -29,10 +28,12 @@ impl FromStr for DurationAndUnit {
     type Err = ParseDurationAndUnitError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
+        use ParseDurationAndUnitError::*;
+
         let parts: Vec<&str> = s.split(',').collect();
 
         if parts.len() != 2 {
-            return Err(ParseDurationAndUnitError::InvalidNumberOfArgs(parts.len()));
+            return Err(InvalidNumberOfArgs(parts.len()));
         }
 
         let duration = parts[0]
@@ -47,7 +48,7 @@ impl FromStr for DurationAndUnit {
             "hour" => TermUnit::Hour,
             "day" => TermUnit::Day,
             "month" => TermUnit::Month,
-            _ => return Err(ParseDurationAndUnitError::UnknownUnit(unit.to_string())),
+            _ => return Err(UnknownUnit(unit.to_string())),
         };
 
         Ok(DurationAndUnit(duration, unit))

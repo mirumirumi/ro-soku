@@ -1,21 +1,23 @@
 use std::str::FromStr;
 
-use anyhow::{bail, Result};
+use anyhow::anyhow;
 use chrono::DateTime;
 use clap::Parser;
 
 mod args;
 mod exchange;
 mod output;
+mod pick;
 mod unit;
 
 use args::*;
 use exchange::*;
 use output::*;
+use pick::*;
 use unit::*;
 
 fn main() -> Result<(), anyhow::Error> {
-    let args = Args::parse();
+    let args = Cli::parse();
 
 
     match &args.command {
@@ -24,7 +26,7 @@ fn main() -> Result<(), anyhow::Error> {
 
             // Create a struct as parsed types from command args
             let parsed_args = ParsedArgs {
-                exchange: args.exchange.parse::<Exchange>()?,
+                exchange: args.exchange.into(),
                 past: match args.past {
                     Some(past) => past,
                     _ => false,
@@ -43,7 +45,7 @@ fn main() -> Result<(), anyhow::Error> {
                 },
                 candlestick: args.candlestick.parse::<DurationAndUnit>()?,
                 pick: args.pick,
-                output: args.output.parse::<OutputKind>()?,
+                output: args.output,
             };
 
             println!("{:?}", parsed_args);
