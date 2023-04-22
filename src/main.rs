@@ -1,6 +1,5 @@
 use std::str::FromStr;
 
-use anyhow::anyhow;
 use chrono::DateTime;
 use clap::Parser;
 
@@ -50,7 +49,6 @@ fn main() -> Result<(), anyhow::Error> {
                 output: args.output,
             };
 
-            println!("{:?}", parsed_args);
             println!("{:?}", parsed_args.exchange);
             println!("{:?}", parsed_args.past);
             println!("{:?}", parsed_args.range);

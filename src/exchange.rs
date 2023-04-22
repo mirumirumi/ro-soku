@@ -16,7 +16,6 @@ impl From<ExchangeForParseArgs> for Exchange {
             ExchangeForParseArgs::Bitflyer => Exchange::BitFlyer(BitFlyer {}),
             ExchangeForParseArgs::Bybit => Exchange::Bybit(Bybit {}),
             ExchangeForParseArgs::Bitbank => Exchange::Bitbank(Bitbank {}),
-            _ => unreachable!(),
         }
     }
 }

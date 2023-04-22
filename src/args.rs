@@ -61,6 +61,10 @@ impl Cli {
             errors.push(format!("- {e}"));
         }
 
+        if let Err(e) = self.check_term_relations() {
+            errors.push(format!("- {e}"));
+        }
+
         if !errors.is_empty() {
             errors.push(format!(
                 "Failed to parse arguments due to {} error(s)",
@@ -132,6 +136,17 @@ impl Cli {
                 self.term_end.is_none(),
                 "The argument `--term-end ` cannot be used with `--range`."
             );
+        }
+
+        Ok(())
+    }
+
+    fn check_term_relations(&self) -> Result<(), Error> {
+        if self.term_start.is_some() && self.term_end.is_some() {
+            ensure!(
+                self.term_start < self.term_end,
+                "The `--term-start` time must be earlier than the `--term-end` time."
+            )
         }
 
         Ok(())
