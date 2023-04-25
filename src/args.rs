@@ -15,7 +15,7 @@ pub struct Cli {
 
     /// Name of the exchange
     #[arg(short = 'x', long, value_enum, default_value = "binance")]
-    pub exchange: ExchangeForParseArgs,
+    pub exchange: Exchange,
 
     /// Name of the symbol pair (depends on the exchange)
     #[arg(short = 's', long, default_value = "BTCUSDT")]
@@ -161,9 +161,9 @@ pub enum Order {
     Desc,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ParsedArgs {
-    pub exchange: Exchange,
+    pub exchange: Box<dyn Retrieve>,
     pub symbol: String,
     pub past: bool,
     pub range: Option<DurationAndUnit>,

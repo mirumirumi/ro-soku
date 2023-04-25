@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use anyhow::{anyhow, Error};
 use chrono::Utc;
 use clap::ValueEnum;
@@ -7,7 +9,7 @@ use regex::Regex;
 use crate::{args::*, pick::*};
 
 #[derive(Debug, Clone, ValueEnum)]
-pub enum ExchangeForParseArgs {
+pub enum Exchange {
     Binance,
     Bybit,
     // Okx,
@@ -15,26 +17,33 @@ pub enum ExchangeForParseArgs {
     Bitbank,
 }
 
-impl From<ExchangeForParseArgs> for Exchange {
-    fn from(value: ExchangeForParseArgs) -> Self {
+impl From<Exchange> for Box<dyn Retrieve> {
+    fn from(value: Exchange) -> Self {
         match value {
-            ExchangeForParseArgs::Binance => Exchange::Binance(Binance::new()),
-            // ExchangeForParseArgs::Bybit => Exchange::Bybit(Bybit {}),
-            // ExchangeForParseArgs::Bitbank => Exchange::Bitbank(Bitbank {}),
+            Exchange::Binance => Box::new(Binance::new()),
+            // ExchangeForParseArgs::Bybit => Box::new(Bybit::new()),
+            // ExchangeForParseArgs::Bitbank => Box::new(Bitbank::new()),
             _ => todo!(),
         }
     }
 }
 
-#[derive(Debug, Clone)]
-pub enum Exchange {
-    Binance(Binance),
-    // Bybit(Bybit),
-    // Bitbank(Bitbank),
-}
+pub trait Retrieve: Debug {
+    fn retrieve(&self, args: &ParsedArgs) -> Result<Vec<OhlcvData>, Error> {
+        let data = self.fetch(args)?;
+        Ok(self.pick(data, args))
+    }
 
-impl Exchange {
-    pub fn fit_to_term_args(args: &ParsedArgs) -> (i64, i64) {
+    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
+
+    fn pick(&self, data: String, args: &ParsedArgs) -> Vec<OhlcvData> {
+        vec![OhlcvData { data }]
+    }
+
+    fn fit_to_term_args(args: &ParsedArgs) -> (i64, i64)
+    where
+        Self: Sized,
+    {
         let start_time;
         let end_time;
 
@@ -48,19 +57,6 @@ impl Exchange {
         }
 
         (start_time, end_time)
-    }
-}
-
-pub trait Retrieve {
-    fn exec(&self, args: &ParsedArgs) -> Result<Vec<OhlcvData>, Error> {
-        let data = self.fetch(args)?;
-        Ok(self.pick(data, args))
-    }
-
-    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
-
-    fn pick(&self, data: String, args: &ParsedArgs) -> Vec<OhlcvData> {
-        vec![OhlcvData { data }]
     }
 }
 
@@ -106,7 +102,7 @@ impl Retrieve for Binance {
 
         let url = format!("{}{}", self.base_url, self.endpoint);
 
-        let (start_time, end_time) = Exchange::fit_to_term_args(args);
+        let (start_time, end_time) = Self::fit_to_term_args(args);
 
 
         let params = &[
@@ -164,10 +160,7 @@ mod tests {
     #[test]
     fn test_fit_to_term_args_past() {
         let args = ParsedArgs {
-            exchange: Exchange::Binance(Binance {
-                base_url: String::new(),
-                endpoint: String::new(),
-            }),
+            exchange: Box::new(Binance::new()),
             symbol: String::new(),
             past: true,
             range: Some(DurationAndUnit(1, TermUnit::Day)),
@@ -178,7 +171,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = Exchange::fit_to_term_args(&args);
+        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
 
         // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
         let now = Utc::now();
@@ -194,10 +187,7 @@ mod tests {
     #[test]
     fn test_fit_to_term_args_terms() {
         let args = ParsedArgs {
-            exchange: Exchange::Binance(Binance {
-                base_url: String::new(),
-                endpoint: String::new(),
-            }),
+            exchange: Box::new(Binance::new()),
             symbol: String::new(),
             past: false,
             range: None,
@@ -208,7 +198,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = Exchange::fit_to_term_args(&args);
+        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
 
         let expected_start_time = 946684800000;
         let expected_end_time = 946771200000;
