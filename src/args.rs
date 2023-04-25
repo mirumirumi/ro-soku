@@ -29,11 +29,11 @@ pub struct Cli {
     #[arg(long)]
     pub range: Option<String>,
 
-    /// Start of data period (cannot be used with `--past` and `--range`, `--term-end` is required)
+    /// Start of data period, you can use unixtime or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-end` is required)
     #[arg(long)]
     pub term_start: Option<String>,
 
-    /// End of data period (cannot be used with `--past` and `--range`, `--term-start` is required)
+    /// End of data period, you can use unixtime or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-start` is required)
     #[arg(long)]
     pub term_end: Option<String>,
 
@@ -42,7 +42,7 @@ pub struct Cli {
     // This may also be received by `value_delimiter` to implement `FromVec`
     pub interval: String,
 
-    /// Select data which you want from O/H/L/C/V and unixtime (or RFC3339 timestamp), in any order you like
+    /// Select data which you want from O/H/L/C/V and unixtime (or RFC3339 timestamp), in any order you like and allow multiple specifications
     #[arg(
         short = 'p',
         long,
@@ -69,10 +69,6 @@ impl Cli {
         }
 
         if let Err(e) = self.check_argument_consistency() {
-            errors.push(format!("- {e}"));
-        }
-
-        if let Err(e) = self.check_term_relations() {
             errors.push(format!("- {e}"));
         }
 
@@ -151,17 +147,6 @@ impl Cli {
 
         Ok(())
     }
-
-    fn check_term_relations(&self) -> Result<(), Error> {
-        if self.term_start.is_some() && self.term_end.is_some() {
-            ensure!(
-                self.term_start < self.term_end,
-                "The `--term-start` time must be earlier than the `--term-end` time."
-            )
-        }
-
-        Ok(())
-    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -189,33 +174,56 @@ pub struct ParsedArgs {
     pub output: FormatType,
 }
 
+impl ParsedArgs {
+    fn parse_terms(term: String) -> Result<Option<i64>, Error> {
+        if Regex::new(r"^\d+$").unwrap().is_match(&term) {
+            Ok(Some(term.parse::<i64>().unwrap()))
+        } else {
+            Ok(Some(
+                DateTime::<Utc>::from_str(term.as_str())
+                    .map_err(|e| anyhow!("Invalid format timestamp: {}", e))?
+                    .timestamp()
+                    * 1000,
+            ))
+        }
+    }
+
+    fn check_term_relations(&self) -> Result<(), Error> {
+        if self.term_start.is_some() && self.term_end.is_some() {
+            ensure!(
+                self.term_start < self.term_end,
+                "The `--term-start` time must be earlier than the `--term-end` time."
+            )
+        };
+
+        Ok(())
+    }
+}
 
 impl TryFrom<Cli> for ParsedArgs {
     type Error = anyhow::Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        Ok(ParsedArgs {
+        let parsed_args = ParsedArgs {
             exchange: value.exchange.into(),
             symbol: value.symbol,
-            past: match value.past {
-                Some(past) => past,
-                _ => false,
-            },
-            range: match value.range {
-                Some(range) => Some(range.parse::<DurationAndUnit>()?),
-                _ => None,
-            },
-            term_start: match value.term_start {
-                Some(term_start) => Self::pars_terms(term_start)?,
-                _ => None,
-            },
-            term_end: match value.term_end {
-                Some(term_end) => Self::pars_terms(term_end)?,
-                _ => None,
-            },
+            past: value.past.unwrap_or(false),
+            range: value
+                .range
+                .and_then(|range| range.parse::<DurationAndUnit>().ok()),
+            term_start: value
+                .term_start
+                .and_then(|term_start| Self::parse_terms(term_start).ok()?),
+            term_end: value
+                .term_end
+                .and_then(|term_end| Self::parse_terms(term_end).ok()?),
             interval: value.interval.parse::<DurationAndUnit>()?,
             pick: value.pick,
             output: value.format,
-        })
+        };
+
+        parsed_args.check_term_relations()?;
+
+        Ok(parsed_args)
     }
 }

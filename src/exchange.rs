@@ -1,12 +1,10 @@
-use std::fmt::Display;
-
-use anyhow::anyhow;
+use anyhow::{anyhow, Error};
 use chrono::Utc;
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
 
-use crate::args::*;
+use crate::{args::*, pick::*};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ExchangeForParseArgs {
@@ -21,8 +19,9 @@ impl From<ExchangeForParseArgs> for Exchange {
     fn from(value: ExchangeForParseArgs) -> Self {
         match value {
             ExchangeForParseArgs::Binance => Exchange::Binance(Binance::new()),
-            ExchangeForParseArgs::Bybit => Exchange::Bybit(Bybit {}),
-            ExchangeForParseArgs::Bitbank => Exchange::Bitbank(Bitbank {}),
+            // ExchangeForParseArgs::Bybit => Exchange::Bybit(Bybit {}),
+            // ExchangeForParseArgs::Bitbank => Exchange::Bitbank(Bitbank {}),
+            _ => todo!(),
         }
     }
 }
@@ -30,8 +29,39 @@ impl From<ExchangeForParseArgs> for Exchange {
 #[derive(Debug, Clone)]
 pub enum Exchange {
     Binance(Binance),
-    Bybit(Bybit),
-    Bitbank(Bitbank),
+    // Bybit(Bybit),
+    // Bitbank(Bitbank),
+}
+
+impl Exchange {
+    pub fn fit_to_term_args(args: &ParsedArgs) -> (i64, i64) {
+        let start_time;
+        let end_time;
+
+        if args.past {
+            let now = Utc::now();
+            start_time = (now - args.range.clone().unwrap().past_duration()).timestamp() * 1000;
+            end_time = now.timestamp() * 1000;
+        } else {
+            start_time = args.term_start.unwrap();
+            end_time = args.term_end.unwrap();
+        }
+
+        (start_time, end_time)
+    }
+}
+
+pub trait Retrieve {
+    fn exec(&self, args: &ParsedArgs) -> Result<Vec<OhlcvData>, Error> {
+        let data = self.fetch(args)?;
+        Ok(self.pick(data, args))
+    }
+
+    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
+
+    fn pick(&self, data: String, args: &ParsedArgs) -> Vec<OhlcvData> {
+        vec![OhlcvData { data }]
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -71,21 +101,13 @@ impl Binance {
     }
 }
 
-impl Fetch for Binance {
-    fn fetch(&self, args: &ParsedArgs) -> Result<Ohlcv, anyhow::Error> {
+impl Retrieve for Binance {
+    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
+
         let url = format!("{}{}", self.base_url, self.endpoint);
 
-        let start_time;
-        let end_time;
+        let (start_time, end_time) = Exchange::fit_to_term_args(args);
 
-        if args.past {
-            let now = Utc::now();
-            start_time = (now - args.range.clone().unwrap().past_duration()).timestamp() * 1000;
-            end_time = now.timestamp() * 1000;
-        } else {
-            start_time = args.term_start.unwrap();
-            end_time = args.term_end.unwrap();
-        }
 
         let params = &[
             ("symbol", args.symbol.clone()),
@@ -95,59 +117,103 @@ impl Fetch for Binance {
             ("limit", 1000.to_string()),
         ];
 
-        println!("{:?}", params);
+        dbg!(&params);
 
         let client = reqwest::blocking::Client::new();
         let res = client.get(url).query(params).send()?.text()?;
 
 
-        println!("{:?}", res);
 
-        Ok(Ohlcv {
-            data: "".to_string(),
-        })
+        Ok(res)
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct Bybit {
-    // cdn-request-id
-}
+// #[derive(Debug, Clone)]
+// pub struct Bybit {
+//     // cdn-request-id
+// }
 
-impl Bybit {}
+// impl Bybit {}
 
-impl Fetch for Bybit {
-    fn fetch(&self, args: &ParsedArgs) -> Result<Ohlcv, anyhow::Error> {
-        Ok(Ohlcv {
-            data: "".to_string(),
-        })
+// impl Retrieve for Bybit {
+//     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
+//         Ok("".to_string())
+//     }
+// }
+
+// #[derive(Debug, Clone)]
+// pub struct Bitbank {}
+
+// impl Bitbank {}
+
+// impl Retrieve for Bitbank {
+//     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
+//         Ok("".to_string())
+//     }
+// }
+
+#[cfg(test)]
+mod tests {
+    // cargo test -- --nocapture
+
+    use chrono::{Duration, Utc};
+
+    use super::*;
+    use crate::{formatter::*, unit::*};
+
+    #[test]
+    fn test_fit_to_term_args_past() {
+        let args = ParsedArgs {
+            exchange: Exchange::Binance(Binance {
+                base_url: String::new(),
+                endpoint: String::new(),
+            }),
+            symbol: String::new(),
+            past: true,
+            range: Some(DurationAndUnit(1, TermUnit::Day)),
+            term_start: None,
+            term_end: None,
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            output: FormatType::Json,
+        };
+
+        let (start_time, end_time) = Exchange::fit_to_term_args(&args);
+
+        // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
+        let now = Utc::now();
+        // let now = DateTime::parse_from_rfc3339("2000-01-02T00:00:00.0000Z").unwrap().with_timezone(&Utc);
+
+        let expected_start_time = (now - Duration::days(1)).timestamp() * 1000;
+        let expected_end_time = now.timestamp() * 1000;
+
+        assert_eq!(start_time, expected_start_time);
+        assert_eq!(end_time, expected_end_time);
     }
-}
 
-#[derive(Debug, Clone)]
-pub struct Bitbank {}
+    #[test]
+    fn test_fit_to_term_args_terms() {
+        let args = ParsedArgs {
+            exchange: Exchange::Binance(Binance {
+                base_url: String::new(),
+                endpoint: String::new(),
+            }),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(946684800000),
+            term_end: Some(946771200000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            output: FormatType::Json,
+        };
 
-impl Bitbank {}
+        let (start_time, end_time) = Exchange::fit_to_term_args(&args);
 
-impl Fetch for Bitbank {
-    fn fetch(&self, args: &ParsedArgs) -> Result<Ohlcv, anyhow::Error> {
-        Ok(Ohlcv {
-            data: "".to_string(),
-        })
-    }
-}
+        let expected_start_time = 946684800000;
+        let expected_end_time = 946771200000;
 
-pub trait Fetch {
-    fn fetch(&self, args: &ParsedArgs) -> Result<Ohlcv, anyhow::Error>;
-}
-
-#[derive(Debug, Clone)]
-pub struct Ohlcv {
-    data: String,
-}
-
-impl Display for Ohlcv {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.data)
+        assert_eq!(start_time, expected_start_time);
+        assert_eq!(end_time, expected_end_time);
     }
 }

@@ -15,7 +15,7 @@ pub enum TermUnit {
 }
 
 #[derive(Debug, Clone)]
-pub struct DurationAndUnit(u8, TermUnit);
+pub struct DurationAndUnit(pub u8, pub TermUnit);
 
 impl DurationAndUnit {
     pub fn past_duration(&self) -> Duration {
@@ -84,18 +84,6 @@ impl DurationAndUnit {
     }
 }
 
-#[derive(Debug, Error)]
-pub enum ParseDurationAndUnitError {
-    #[error("Invalid format: expected digit followed by unit, got {0}")]
-    InvalidFormat(String),
-    #[error("Invalid number of args: expected 2, got {0}")]
-    InvalidNumberOfArgs(usize),
-    #[error("Failed to parse duration: {0}")]
-    ParseIntError(#[from] ParseIntError),
-    #[error("Unknown unit: {0}")]
-    UnknownUnit(String),
-}
-
 impl FromStr for DurationAndUnit {
     type Err = ParseDurationAndUnitError;
 
@@ -131,4 +119,16 @@ impl FromStr for DurationAndUnit {
 
         Ok(DurationAndUnit(duration, unit))
     }
+}
+
+#[derive(Debug, Error)]
+pub enum ParseDurationAndUnitError {
+    #[error("Invalid format: expected digit followed by unit, got {0}")]
+    InvalidFormat(String),
+    #[error("Invalid number of args: expected 2, got {0}")]
+    InvalidNumberOfArgs(usize),
+    #[error("Failed to parse duration: {0}")]
+    ParseIntError(#[from] ParseIntError),
+    #[error("Unknown unit: {0}")]
+    UnknownUnit(String),
 }

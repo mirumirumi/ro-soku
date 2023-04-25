@@ -28,16 +28,17 @@ fn main() -> Result<(), anyhow::Error> {
             dbg!(&args);
 
             let data = match args.exchange {
-                Exchange::Binance(ref binance) => binance.fetch(&args),
-                Exchange::Bybit(ref bybit) => bybit.fetch(&args),
-                Exchange::Bitbank(ref bitbank) => bitbank.fetch(&args),
+                Exchange::Binance(ref binance) => binance.exec(&args),
+                // Exchange::Bybit(ref bybit) => bybit.fetch(&args),
+                // Exchange::Bitbank(ref bitbank) => bitbank.fetch(&args),
+                _ => todo!(),
             }?;
 
-            // sort
 
             // let data = Formatter::convert(&data);
 
-            println!("{}", data);
+            // println!("{}", data);
+            println!("{:?}", data);
         }
     }
 
