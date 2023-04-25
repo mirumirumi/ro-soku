@@ -1,7 +1,6 @@
 use std::time;
 
 use clap::Parser;
-
 mod args;
 mod exchange;
 mod formatter;
