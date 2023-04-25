@@ -1,64 +1,46 @@
-use std::str::FromStr;
+use std::time;
 
-use chrono::DateTime;
 use clap::Parser;
 
 mod args;
 mod exchange;
-mod output;
+mod formatter;
 mod pick;
 mod unit;
 
 use args::*;
 use exchange::*;
-use output::*;
+use formatter::*;
 use pick::*;
 use unit::*;
 
 fn main() -> Result<(), anyhow::Error> {
+    let timer = time::Instant::now();
     let args = Cli::parse();
 
 
     match &args.command {
         Some(Commands::Set {}) => {}
         _ => {
-            // Validate arguments
             args.valdate()?;
 
-            // Create a struct as parsed types from command args
-            let parsed_args = ParsedArgs {
-                exchange: args.exchange.into(),
-                past: match args.past {
-                    Some(past) => past,
-                    _ => false,
-                },
-                range: match args.range {
-                    Some(range) => Some(range.parse::<DurationAndUnit>()?),
-                    _ => None,
-                },
-                term_start: match args.term_start {
-                    Some(term_start) => Some(DateTime::from_str(term_start.as_str())?),
-                    _ => None,
-                },
-                term_end: match args.term_end {
-                    Some(term_end) => Some(DateTime::from_str(term_end.as_str())?),
-                    _ => None,
-                },
-                candlestick: args.candlestick.parse::<DurationAndUnit>()?,
-                pick: args.pick,
-                output: args.output,
-            };
+            let args: ParsedArgs = args.try_into()?;
+            dbg!(&args);
 
-            println!("{:?}", parsed_args.exchange);
-            println!("{:?}", parsed_args.past);
-            println!("{:?}", parsed_args.range);
-            println!("{:?}", parsed_args.term_start);
-            println!("{:?}", parsed_args.term_end);
-            println!("{:?}", parsed_args.candlestick);
-            println!("{:?}", parsed_args.pick);
-            println!("{:?}", parsed_args.output);
+            let data = match args.exchange {
+                Exchange::Binance(ref binance) => binance.fetch(&args),
+                Exchange::Bybit(ref bybit) => bybit.fetch(&args),
+                Exchange::Bitbank(ref bitbank) => bitbank.fetch(&args),
+            }?;
+
+            // sort
+
+            // let data = Formatter::convert(&data);
+
+            println!("{}", data);
         }
     }
 
+    dbg!(timer.elapsed());
     Ok(())
 }

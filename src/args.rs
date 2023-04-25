@@ -1,8 +1,11 @@
+use std::str::FromStr;
+
 use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
-use clap::{ArgAction, Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand, ValueEnum};
+use regex::Regex;
 
-use crate::{exchange::*, output::*, pick::*, unit::*};
+use crate::{exchange::*, formatter::*, pick::*, unit::*};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -14,11 +17,15 @@ pub struct Cli {
     #[arg(short = 'x', long, value_enum, default_value = "binance")]
     pub exchange: ExchangeForParseArgs,
 
+    /// Name of the symbol pair (depends on the exchange)
+    #[arg(short = 's', long, default_value = "BTCUSDT")]
+    pub symbol: String,
+
     /// Specify if you want the latest data for the past range (cannot be used with `--term-start`, `--term-end`)
     #[arg(long, action = ArgAction::SetTrue)]
     pub past: Option<bool>,
 
-    /// Range of time periods from current to past (`--past` is required)
+    /// Range of time periods from current to past (available for `30min` and `1day` and so on) (`--past` is required)
     #[arg(long)]
     pub range: Option<String>,
 
@@ -30,10 +37,10 @@ pub struct Cli {
     #[arg(long)]
     pub term_end: Option<String>,
 
-    /// Unit and duration of the candlestick (if the duration is omitted, it means `1`)
-    #[arg(short = 'c', long, default_value = "15,min")]
+    /// Unit and duration of the candlestick
+    #[arg(short = 'i', long, default_value = "15min")]
     // This may also be received by `value_delimiter` to implement `FromVec`
-    pub candlestick: String,
+    pub interval: String,
 
     /// Select data which you want from O/H/L/C/V and unixtime (or RFC3339 timestamp), in any order you like
     #[arg(
@@ -44,9 +51,13 @@ pub struct Cli {
     )]
     pub pick: Vec<Pick>,
 
+    /// Order by (sorted by only datetime)
+    #[arg(short = 'o', long, value_enum, default_value = "asc")]
+    pub order: Order,
+
     /// Output format
-    #[arg(short = 'o', long, value_enum, default_value = "raw")]
-    pub output: OutputKind,
+    #[arg(short = 'f', long, value_enum, default_value = "json")]
+    pub format: FormatType,
 }
 
 impl Cli {
@@ -159,14 +170,52 @@ pub enum Commands {
     Set {},
 }
 
+#[derive(Debug, Clone, ValueEnum)]
+pub enum Order {
+    Asc,
+    Desc,
+}
+
 #[derive(Debug, Clone)]
 pub struct ParsedArgs {
     pub exchange: Exchange,
+    pub symbol: String,
     pub past: bool,
     pub range: Option<DurationAndUnit>,
-    pub term_start: Option<DateTime<Utc>>,
-    pub term_end: Option<DateTime<Utc>>,
-    pub candlestick: DurationAndUnit,
+    pub term_start: Option<i64>,
+    pub term_end: Option<i64>,
+    pub interval: DurationAndUnit,
     pub pick: Vec<Pick>,
-    pub output: OutputKind,
+    pub output: FormatType,
+}
+
+
+impl TryFrom<Cli> for ParsedArgs {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Cli) -> Result<Self, Self::Error> {
+        Ok(ParsedArgs {
+            exchange: value.exchange.into(),
+            symbol: value.symbol,
+            past: match value.past {
+                Some(past) => past,
+                _ => false,
+            },
+            range: match value.range {
+                Some(range) => Some(range.parse::<DurationAndUnit>()?),
+                _ => None,
+            },
+            term_start: match value.term_start {
+                Some(term_start) => Self::pars_terms(term_start)?,
+                _ => None,
+            },
+            term_end: match value.term_end {
+                Some(term_end) => Self::pars_terms(term_end)?,
+                _ => None,
+            },
+            interval: value.interval.parse::<DurationAndUnit>()?,
+            pick: value.pick,
+            output: value.format,
+        })
+    }
 }
