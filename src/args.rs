@@ -162,8 +162,8 @@ pub enum Order {
 }
 
 #[derive(Debug)]
-pub struct ParsedArgs {
-    pub exchange: Box<dyn Retrieve>,
+pub struct ParsedArgs<T> {
+    pub exchange: Box<dyn Retrieve<T>>,
     pub symbol: String,
     pub past: bool,
     pub range: Option<DurationAndUnit>,
@@ -174,7 +174,31 @@ pub struct ParsedArgs {
     pub output: FormatType,
 }
 
-impl ParsedArgs {
+impl<T> ParsedArgs<T> {
+    pub fn new(value: Cli, exchange: Box<dyn Retrieve<T>>) -> Result<Self, anyhow::Error> {
+        let parsed_args = ParsedArgs {
+            exchange,
+            symbol: value.symbol,
+            past: value.past.unwrap_or(false),
+            range: value
+                .range
+                .and_then(|range| range.parse::<DurationAndUnit>().ok()),
+            term_start: value
+                .term_start
+                .and_then(|term_start| Self::parse_terms(term_start).ok()?),
+            term_end: value
+                .term_end
+                .and_then(|term_end| Self::parse_terms(term_end).ok()?),
+            interval: value.interval.parse::<DurationAndUnit>()?,
+            pick: value.pick,
+            output: value.format,
+        };
+
+        parsed_args.check_term_relations()?;
+
+        Ok(parsed_args)
+    }
+
     fn parse_terms(term: String) -> Result<Option<i64>, Error> {
         if Regex::new(r"^\d+$").unwrap().is_match(&term) {
             Ok(Some(term.parse::<i64>().unwrap()))
@@ -200,30 +224,10 @@ impl ParsedArgs {
     }
 }
 
-impl TryFrom<Cli> for ParsedArgs {
+impl TryFrom<Cli> for ParsedArgs<BinanceResponse> {
     type Error = anyhow::Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        let parsed_args = ParsedArgs {
-            exchange: value.exchange.into(),
-            symbol: value.symbol,
-            past: value.past.unwrap_or(false),
-            range: value
-                .range
-                .and_then(|range| range.parse::<DurationAndUnit>().ok()),
-            term_start: value
-                .term_start
-                .and_then(|term_start| Self::parse_terms(term_start).ok()?),
-            term_end: value
-                .term_end
-                .and_then(|term_end| Self::parse_terms(term_end).ok()?),
-            interval: value.interval.parse::<DurationAndUnit>()?,
-            pick: value.pick,
-            output: value.format,
-        };
-
-        parsed_args.check_term_relations()?;
-
-        Ok(parsed_args)
+        Self::new(value, Box::new(Binance::new()))
     }
 }

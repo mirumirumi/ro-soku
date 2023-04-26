@@ -1,10 +1,14 @@
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
-use anyhow::{anyhow, Error};
+use anyhow::Error;
 use chrono::Utc;
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
+use serde::{
+    de::{self, SeqAccess, Visitor},
+    Deserialize,
+};
 
 use crate::{args::*, pick::*};
 
@@ -17,30 +21,17 @@ pub enum Exchange {
     Bitbank,
 }
 
-impl From<Exchange> for Box<dyn Retrieve> {
-    fn from(value: Exchange) -> Self {
-        match value {
-            Exchange::Binance => Box::new(Binance::new()),
-            // ExchangeForParseArgs::Bybit => Box::new(Bybit::new()),
-            // ExchangeForParseArgs::Bitbank => Box::new(Bitbank::new()),
-            _ => todo!(),
-        }
-    }
-}
-
-pub trait Retrieve: Debug {
-    fn retrieve(&self, args: &ParsedArgs) -> Result<Vec<OhlcvData>, Error> {
+pub trait Retrieve<T>: Debug {
+    fn retrieve(&self, args: &ParsedArgs<T>) -> Result<Vec<OhlcvData>, Error> {
         let data = self.fetch(args)?;
-        Ok(self.pick(data, args))
+        Ok(self.pick(data, &args.pick))
     }
 
-    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
+    fn fetch(&self, args: &ParsedArgs<T>) -> Result<T, Error>;
 
-    fn pick(&self, data: String, args: &ParsedArgs) -> Vec<OhlcvData> {
-        vec![OhlcvData { data }]
-    }
+    fn pick(&self, data: T, pick: &[Pick]) -> Vec<OhlcvData>;
 
-    fn fit_to_term_args(args: &ParsedArgs) -> (i64, i64)
+    fn fit_to_term_args(args: &ParsedArgs<T>) -> (i64, i64)
     where
         Self: Sized,
     {
@@ -97,8 +88,70 @@ impl Binance {
     }
 }
 
-impl Retrieve for Binance {
-    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
+#[derive(Debug)]
+pub struct BinanceResponse {
+    open_time: i64,
+    o: String,
+    h: String,
+    l: String,
+    c: String,
+    v: String,
+}
+
+impl<'de> Deserialize<'de> for BinanceResponse {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct KlineVisitor;
+
+        impl<'de> Visitor<'de> for KlineVisitor {
+            type Value = BinanceResponse;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("an array with at least 5 elements")
+            }
+
+            fn visit_seq<A>(self, mut seq: A) -> Result<BinanceResponse, A::Error>
+            where
+                A: SeqAccess<'de>,
+            {
+                let open_time = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let o = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+                let h = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
+                let l = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
+                let c = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(4, &self))?;
+                let v = seq
+                    .next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(5, &self))?;
+
+                Ok(BinanceResponse {
+                    open_time,
+                    o,
+                    h,
+                    l,
+                    c,
+                    v,
+                })
+            }
+        }
+
+        deserializer.deserialize_seq(KlineVisitor)
+    }
+}
+
+impl Retrieve<BinanceResponse> for Binance {
+    fn fetch(&self, args: &ParsedArgs<BinanceResponse>) -> Result<BinanceResponse, Error> {
 
         let url = format!("{}{}", self.base_url, self.endpoint);
 
@@ -116,11 +169,26 @@ impl Retrieve for Binance {
         dbg!(&params);
 
         let client = reqwest::blocking::Client::new();
-        let res = client.get(url).query(params).send()?.text()?;
+        let res = client
+            .get(url)
+            .query(params)
+            .send()?
+            .json::<BinanceResponse>()?;
 
 
-
+        println!("{:?}", res);
         Ok(res)
+    }
+
+    fn pick(&self, data: BinanceResponse, pick: &[Pick]) -> Vec<OhlcvData> {
+
+        // let map = HashMap::new();
+
+        println!("{:?}", data);
+
+        vec![OhlcvData {
+            data: String::new(),
+        }]
     }
 }
 
@@ -171,7 +239,8 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
+        let (start_time, end_time) =
+            <Binance as Retrieve<BinanceResponse>>::fit_to_term_args(&args);
 
         // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
         let now = Utc::now();
@@ -198,7 +267,8 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
+        let (start_time, end_time) =
+            <Binance as Retrieve<BinanceResponse>>::fit_to_term_args(&args);
 
         let expected_start_time = 946684800000;
         let expected_end_time = 946771200000;

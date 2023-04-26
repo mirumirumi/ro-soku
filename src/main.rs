@@ -23,7 +23,7 @@ fn main() -> Result<(), anyhow::Error> {
         _ => {
             args.valdate()?;
 
-            let args: ParsedArgs = args.try_into()?;
+            let args: ParsedArgs<_> = args.try_into()?;
             dbg!(&args);
 
             let data = args.exchange.retrieve(&args);
@@ -32,7 +32,6 @@ fn main() -> Result<(), anyhow::Error> {
             // let data = Formatter::convert(&data);
 
             // println!("{}", data);
-            println!("{:?}", data);
         }
     }
 
