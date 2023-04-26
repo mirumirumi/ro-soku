@@ -1,14 +1,11 @@
-use std::{collections::HashMap, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, result};
 
 use anyhow::Error;
 use chrono::Utc;
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
-use serde::{
-    de::{self, SeqAccess, Visitor},
-    Deserialize,
-};
+use serde::Deserialize;
 
 use crate::{args::*, pick::*};
 
@@ -24,12 +21,18 @@ pub enum Exchange {
 pub trait Retrieve<T>: Debug {
     fn retrieve(&self, args: &ParsedArgs<T>) -> Result<Vec<OhlcvData>, Error> {
         let data = self.fetch(args)?;
+        let data = self.parse_as_ohlcv_data(data);
         Ok(self.pick(data, &args.pick))
     }
 
-    fn fetch(&self, args: &ParsedArgs<T>) -> Result<T, Error>;
+    fn fetch(&self, args: &ParsedArgs<T>) -> Result<String, Error>;
 
-    fn pick(&self, data: T, pick: &[Pick]) -> Vec<OhlcvData>;
+    fn parse_as_ohlcv_data(
+        &self, /* Not really necessary, but removing it would add complexity */
+        data: String,
+    ) -> Vec<T>;
+
+    fn pick(&self, data: Vec<T>, pick: &[Pick]) -> Vec<OhlcvData>;
 
     fn fit_to_term_args(args: &ParsedArgs<T>) -> (i64, i64)
     where
@@ -90,7 +93,7 @@ impl Binance {
 
 #[derive(Debug)]
 pub struct BinanceResponse {
-    open_time: i64,
+    unixtime_msec: i64,
     o: String,
     h: String,
     l: String,
@@ -98,60 +101,8 @@ pub struct BinanceResponse {
     v: String,
 }
 
-impl<'de> Deserialize<'de> for BinanceResponse {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        struct KlineVisitor;
-
-        impl<'de> Visitor<'de> for KlineVisitor {
-            type Value = BinanceResponse;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
-                formatter.write_str("an array with at least 5 elements")
-            }
-
-            fn visit_seq<A>(self, mut seq: A) -> Result<BinanceResponse, A::Error>
-            where
-                A: SeqAccess<'de>,
-            {
-                let open_time = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
-                let o = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
-                let h = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(2, &self))?;
-                let l = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(3, &self))?;
-                let c = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(4, &self))?;
-                let v = seq
-                    .next_element()?
-                    .ok_or_else(|| de::Error::invalid_length(5, &self))?;
-
-                Ok(BinanceResponse {
-                    open_time,
-                    o,
-                    h,
-                    l,
-                    c,
-                    v,
-                })
-            }
-        }
-
-        deserializer.deserialize_seq(KlineVisitor)
-    }
-}
-
 impl Retrieve<BinanceResponse> for Binance {
-    fn fetch(&self, args: &ParsedArgs<BinanceResponse>) -> Result<BinanceResponse, Error> {
+    fn fetch(&self, args: &ParsedArgs<BinanceResponse>) -> Result<String, Error> {
 
         let url = format!("{}{}", self.base_url, self.endpoint);
 
@@ -169,22 +120,30 @@ impl Retrieve<BinanceResponse> for Binance {
         dbg!(&params);
 
         let client = reqwest::blocking::Client::new();
-        let res = client
-            .get(url)
-            .query(params)
-            .send()?
-            .json::<BinanceResponse>()?;
+        let res = client.get(url).query(params).send()?.text()?;
 
 
-        println!("{:?}", res);
         Ok(res)
     }
 
-    fn pick(&self, data: BinanceResponse, pick: &[Pick]) -> Vec<OhlcvData> {
+    fn parse_as_ohlcv_data(&self, data: String) -> Vec<BinanceResponse> {
+        serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&data)
+            .expect("Unexpected error! Failed to parse response to json.")
+            .iter()
+            .map(|raw| BinanceResponse {
+                unixtime_msec: raw[0].as_i64().unwrap(),
+                o: raw[1].as_str().unwrap().to_owned(),
+                h: raw[2].as_str().unwrap().to_owned(),
+                l: raw[3].as_str().unwrap().to_owned(),
+                c: raw[4].as_str().unwrap().to_owned(),
+                v: raw[5].as_str().unwrap().to_owned(),
+            })
+            .collect()
+    }
+
+    fn pick(&self, data: Vec<BinanceResponse>, pick: &[Pick]) -> Vec<OhlcvData> {
 
         // let map = HashMap::new();
-
-        println!("{:?}", data);
 
         vec![OhlcvData {
             data: String::new(),
