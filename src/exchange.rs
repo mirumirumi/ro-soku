@@ -41,9 +41,9 @@ pub trait Retrieve: Debug {
             result.push(Vec::new());
             for p in pick.iter() {
                 match p {
-                    Unixtime => {
+                    T => {
                         result[i].push(
-                            [(Unixtime, KlineNumber::Unixtime(d.unixtime_msec))]
+                            [(T, KlineNumber::Unixtime(d.unixtime_msec))]
                                 .iter()
                                 .cloned()
                                 .collect(),

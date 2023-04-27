@@ -42,12 +42,12 @@ pub struct Cli {
     // This may also be received by `value_delimiter` to implement `FromVec`
     pub interval: String,
 
-    /// Select data which you want from O/H/L/C/V and unixtime, in any order you like and allow multiple specifications
+    /// Select data which you want from t(imestamp as unixtime)/o/h/l/c/v, in any order you like and allow multiple specifications (except for output type: json)
     #[arg(
         short = 'p',
         long,
         value_delimiter = ',',
-        default_value = "unixtime,o,h,l,c,v"
+        default_value = "t,o,h,l,c,v"
     )]
     pub pick: Vec<Pick>,
 

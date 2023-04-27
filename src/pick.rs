@@ -3,7 +3,7 @@ use clap::ValueEnum;
 #[derive(Debug, Clone, PartialEq, Eq, Hash, ValueEnum)]
 // Allow multiple
 pub enum Pick {
-    Unixtime,
+    T,
     O,
     H,
     L,
