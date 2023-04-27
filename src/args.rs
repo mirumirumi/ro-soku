@@ -1,11 +1,11 @@
-use std::str::FromStr;
+use std::{cmp::Ordering, fmt::Debug, str::FromStr};
 
 use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
 use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 use regex::Regex;
 
-use crate::{exchange::*, format::*, pick::*, unit::*};
+use crate::{exchange::*, format::*, pick::*, types::*, unit::*};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -162,8 +162,8 @@ pub enum Order {
 }
 
 #[derive(Debug)]
-pub struct ParsedArgs<T> {
-    pub exchange: Box<dyn Retrieve<T>>,
+pub struct ParsedArgs {
+    pub exchange: Box<dyn Retrieve>,
     pub symbol: String,
     pub past: bool,
     pub range: Option<DurationAndUnit>,
@@ -171,11 +171,12 @@ pub struct ParsedArgs<T> {
     pub term_end: Option<i64>,
     pub interval: DurationAndUnit,
     pub pick: Vec<Pick>,
+    pub order: Order,
     pub output: FormatType,
 }
 
-impl<T> ParsedArgs<T> {
-    pub fn new(value: Cli, exchange: Box<dyn Retrieve<T>>) -> Result<Self, anyhow::Error> {
+impl ParsedArgs {
+    pub fn new(value: Cli, exchange: Box<dyn Retrieve>) -> Result<Self, anyhow::Error> {
         let parsed_args = ParsedArgs {
             exchange,
             symbol: value.symbol,
@@ -191,6 +192,7 @@ impl<T> ParsedArgs<T> {
                 .and_then(|term_end| Self::parse_terms(term_end).ok()?),
             interval: value.interval.parse::<DurationAndUnit>()?,
             pick: value.pick,
+            order: value.order,
             output: value.format,
         };
 
@@ -222,9 +224,37 @@ impl<T> ParsedArgs<T> {
 
         Ok(())
     }
+
+    pub fn sort(&self, mut data: Vec<Raw>) -> Vec<Raw> {
+        let sort = |a: &Raw, b: &Raw| {
+            let unixtime_a = a
+                .iter()
+                .flat_map(|map| map.get(&Pick::Unixtime))
+                .next()
+                .unwrap();
+            let unixtime_b = b
+                .iter()
+                .flat_map(|map| map.get(&Pick::Unixtime))
+                .next()
+                .unwrap();
+            unixtime_a
+                .partial_cmp(unixtime_b)
+                .unwrap_or(Ordering::Equal)
+        };
+
+        match self.order {
+            Order::Asc => data.sort_unstable_by(sort),
+            Order::Desc => {
+                data.sort_unstable_by(sort);
+                data.reverse();
+            }
+        }
+
+        data
+    }
 }
 
-impl TryFrom<Cli> for ParsedArgs<BinanceKline> {
+impl TryFrom<Cli> for ParsedArgs {
     type Error = anyhow::Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {

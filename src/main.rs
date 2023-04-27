@@ -1,17 +1,15 @@
 use std::time;
 
 use clap::Parser;
+
 mod args;
 mod exchange;
 mod format;
 mod pick;
+mod types;
 mod unit;
 
 use args::*;
-use exchange::*;
-use format::*;
-use pick::*;
-use unit::*;
 
 fn main() -> Result<(), anyhow::Error> {
     let timer = time::Instant::now();
@@ -23,15 +21,17 @@ fn main() -> Result<(), anyhow::Error> {
         _ => {
             args.valdate()?;
 
-            let args: ParsedArgs<_> = args.try_into()?;
+            let args: ParsedArgs = args.try_into()?;
             dbg!(&args);
 
-            let data = args.exchange.retrieve(&args);
 
+            let data = args.exchange.retrieve(&args)?;
 
-            // let data = Formatter::convert(&data);
+            let data = args.sort(data);
 
-            // println!("{}", data);
+            let data = args.output.format(&data);
+
+            println!("{}", data);
         }
     }
 
