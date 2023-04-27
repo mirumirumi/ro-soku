@@ -5,11 +5,12 @@ use clap::Parser;
 mod args;
 mod exchange;
 mod format;
+mod order;
 mod pick;
 mod types;
 mod unit;
 
-use args::*;
+use crate::{args::*, order::Order};
 
 fn main() -> Result<(), anyhow::Error> {
     let timer = time::Instant::now();
@@ -27,7 +28,7 @@ fn main() -> Result<(), anyhow::Error> {
 
             let data = args.exchange.retrieve(&args)?;
 
-            let data = args.sort(data);
+            let data = Order::sort(data, args.order);
 
             let data = args.output.format(&data);
 

@@ -1,11 +1,11 @@
-use std::{cmp::Ordering, fmt::Debug, str::FromStr};
+use std::{fmt::Debug, str::FromStr};
 
 use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
-use clap::{ArgAction, Parser, Subcommand, ValueEnum};
+use clap::{ArgAction, Parser, Subcommand};
 use regex::Regex;
 
-use crate::{exchange::*, format::*, pick::*, types::*, unit::*};
+use crate::{exchange::*, format::*, order::*, pick::*, unit::*};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -155,12 +155,6 @@ pub enum Commands {
     Guide {},
 }
 
-#[derive(Debug, Clone, ValueEnum)]
-pub enum Order {
-    Asc,
-    Desc,
-}
-
 #[derive(Debug)]
 pub struct ParsedArgs {
     pub exchange: Box<dyn Retrieve>,
@@ -223,34 +217,6 @@ impl ParsedArgs {
         };
 
         Ok(())
-    }
-
-    pub fn sort(&self, mut data: Vec<Raw>) -> Vec<Raw> {
-        let sort = |a: &Raw, b: &Raw| {
-            let unixtime_a = a
-                .iter()
-                .flat_map(|map| map.get(&Pick::Unixtime))
-                .next()
-                .unwrap();
-            let unixtime_b = b
-                .iter()
-                .flat_map(|map| map.get(&Pick::Unixtime))
-                .next()
-                .unwrap();
-            unixtime_a
-                .partial_cmp(unixtime_b)
-                .unwrap_or(Ordering::Equal)
-        };
-
-        match self.order {
-            Order::Asc => data.sort_unstable_by(sort),
-            Order::Desc => {
-                data.sort_unstable_by(sort);
-                data.reverse();
-            }
-        }
-
-        data
     }
 }
 

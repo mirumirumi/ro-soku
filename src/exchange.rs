@@ -226,7 +226,7 @@ mod tests {
     use chrono::{Duration, Utc};
 
     use super::*;
-    use crate::{format::*, unit::*};
+    use crate::{format::*, order::*, unit::*};
 
     #[test]
     fn test_fit_to_term_args_past() {

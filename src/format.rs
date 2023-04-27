@@ -47,7 +47,6 @@ impl FormatType {
             }
             result.truncate(result.len() - delimiter.len());
 
-            // FIXME: Need OS newline?
             result.push_str("]\n");
         }
 
