@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 use regex::Regex;
 
-use crate::{exchange::*, formatter::*, pick::*, unit::*};
+use crate::{exchange::*, format::*, pick::*, unit::*};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -42,7 +42,7 @@ pub struct Cli {
     // This may also be received by `value_delimiter` to implement `FromVec`
     pub interval: String,
 
-    /// Select data which you want from O/H/L/C/V and unixtime (or RFC3339 timestamp), in any order you like and allow multiple specifications
+    /// Select data which you want from O/H/L/C/V and unixtime, in any order you like and allow multiple specifications
     #[arg(
         short = 'p',
         long,
@@ -56,7 +56,7 @@ pub struct Cli {
     pub order: Order,
 
     /// Output format
-    #[arg(short = 'f', long, value_enum, default_value = "json")]
+    #[arg(short = 'f', long, value_enum, default_value = "raw")]
     pub format: FormatType,
 }
 
@@ -152,7 +152,7 @@ impl Cli {
 #[derive(Debug, Subcommand)]
 pub enum Commands {
     /// Start interactive mode to build a command with all options (there is no valid option)
-    Set {},
+    Guide {},
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -224,7 +224,7 @@ impl<T> ParsedArgs<T> {
     }
 }
 
-impl TryFrom<Cli> for ParsedArgs<BinanceResponse> {
+impl TryFrom<Cli> for ParsedArgs<BinanceKline> {
     type Error = anyhow::Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {

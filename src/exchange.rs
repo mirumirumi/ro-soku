@@ -19,20 +19,27 @@ pub enum Exchange {
 }
 
 pub trait Retrieve<T>: Debug {
-    fn retrieve(&self, args: &ParsedArgs<T>) -> Result<Vec<OhlcvData>, Error> {
+    fn retrieve(
+        &self,
+        args: &ParsedArgs<T>,
+    ) -> Result<Vec<Vec<HashMap<Pick, serde_json::Number>>>, Error> {
         let data = self.fetch(args)?;
-        let data = self.parse_as_ohlcv_data(data);
+        let data = self.parse_as_kline(data);
         Ok(self.pick(data, &args.pick))
     }
 
     fn fetch(&self, args: &ParsedArgs<T>) -> Result<String, Error>;
 
-    fn parse_as_ohlcv_data(
+    fn parse_as_kline(
         &self, /* Not really necessary, but removing it would add complexity */
         data: String,
     ) -> Vec<T>;
 
-    fn pick(&self, data: Vec<T>, pick: &[Pick]) -> Vec<OhlcvData>;
+    fn pick(
+        &self, /* Same as above */
+        data: Vec<T>,
+        pick: &[Pick],
+    ) -> Vec<Vec<HashMap<Pick, serde_json::Number>>>;
 
     fn fit_to_term_args(args: &ParsedArgs<T>) -> (i64, i64)
     where
@@ -92,7 +99,7 @@ impl Binance {
 }
 
 #[derive(Debug)]
-pub struct BinanceResponse {
+pub struct BinanceKline {
     unixtime_msec: i64,
     o: String,
     h: String,
@@ -101,8 +108,8 @@ pub struct BinanceResponse {
     v: String,
 }
 
-impl Retrieve<BinanceResponse> for Binance {
-    fn fetch(&self, args: &ParsedArgs<BinanceResponse>) -> Result<String, Error> {
+impl Retrieve<BinanceKline> for Binance {
+    fn fetch(&self, args: &ParsedArgs<BinanceKline>) -> Result<String, Error> {
 
         let url = format!("{}{}", self.base_url, self.endpoint);
 
@@ -126,11 +133,11 @@ impl Retrieve<BinanceResponse> for Binance {
         Ok(res)
     }
 
-    fn parse_as_ohlcv_data(&self, data: String) -> Vec<BinanceResponse> {
+    fn parse_as_kline(&self, data: String) -> Vec<BinanceKline> {
         serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&data)
             .expect("Unexpected error! Failed to parse response to json.")
             .iter()
-            .map(|raw| BinanceResponse {
+            .map(|raw| BinanceKline {
                 unixtime_msec: raw[0].as_i64().unwrap(),
                 o: raw[1].as_str().unwrap().to_owned(),
                 h: raw[2].as_str().unwrap().to_owned(),
@@ -141,13 +148,114 @@ impl Retrieve<BinanceResponse> for Binance {
             .collect()
     }
 
-    fn pick(&self, data: Vec<BinanceResponse>, pick: &[Pick]) -> Vec<OhlcvData> {
+    fn pick(
+        &self,
+        data: Vec<BinanceKline>,
+        pick: &[Pick],
+    ) -> Vec<Vec<HashMap<Pick, serde_json::Number>>> {
 
-        // let map = HashMap::new();
+        use Pick::*;
 
-        vec![OhlcvData {
-            data: String::new(),
-        }]
+        let mut result: Vec<Vec<HashMap<Pick, serde_json::Number>>> = Vec::new();
+
+        for (i, d) in data.iter().enumerate() {
+            result.push(Vec::new());
+            for p in pick.iter() {
+                match p {
+                    Unixtime => {
+                        result[i].push(
+                            [(Unixtime, serde_json::Number::from(d.unixtime_msec))]
+                                .iter()
+                                .cloned()
+                                .collect(),
+                        );
+                    }
+                    O => {
+                        result[i].push(
+                            [(
+                                O,
+                                serde_json::Number::from_f64(
+                                    (d.o)
+                                        .parse::<f64>()
+                                        .expect("Failed to parse OHLCV to `f64`."),
+                                )
+                                .unwrap(),
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                        );
+                    }
+                    H => {
+                        result[i].push(
+                            [(
+                                H,
+                                serde_json::Number::from_f64(
+                                    (d.h)
+                                        .parse::<f64>()
+                                        .expect("Failed to parse OHLCV to `f64`."),
+                                )
+                                .unwrap(),
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                        );
+                    }
+                    L => {
+                        result[i].push(
+                            [(
+                                L,
+                                serde_json::Number::from_f64(
+                                    (d.l)
+                                        .parse::<f64>()
+                                        .expect("Failed to parse OHLCV to `f64`."),
+                                )
+                                .unwrap(),
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                        );
+                    }
+                    C => {
+                        result[i].push(
+                            [(
+                                C,
+                                serde_json::Number::from_f64(
+                                    (d.c)
+                                        .parse::<f64>()
+                                        .expect("Failed to parse OHLCV to `f64`."),
+                                )
+                                .unwrap(),
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                        );
+                    }
+                    V => {
+                        result[i].push(
+                            [(
+                                V,
+                                serde_json::Number::from_f64(
+                                    (d.v)
+                                        .parse::<f64>()
+                                        .expect("Failed to parse OHLCV to `f64`."),
+                                )
+                                .unwrap(),
+                            )]
+                            .iter()
+                            .cloned()
+                            .collect(),
+                        );
+                    }
+                };
+            }
+        }
+
+        println!("{:?}", result);
+        result
     }
 }
 
@@ -182,7 +290,7 @@ mod tests {
     use chrono::{Duration, Utc};
 
     use super::*;
-    use crate::{formatter::*, unit::*};
+    use crate::{format::*, unit::*};
 
     #[test]
     fn test_fit_to_term_args_past() {
@@ -198,8 +306,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) =
-            <Binance as Retrieve<BinanceResponse>>::fit_to_term_args(&args);
+        let (start_time, end_time) = <Binance as Retrieve<BinanceKline>>::fit_to_term_args(&args);
 
         // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
         let now = Utc::now();
@@ -226,8 +333,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) =
-            <Binance as Retrieve<BinanceResponse>>::fit_to_term_args(&args);
+        let (start_time, end_time) = <Binance as Retrieve<BinanceKline>>::fit_to_term_args(&args);
 
         let expected_start_time = 946684800000;
         let expected_end_time = 946771200000;

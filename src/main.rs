@@ -3,13 +3,13 @@ use std::time;
 use clap::Parser;
 mod args;
 mod exchange;
-mod formatter;
+mod format;
 mod pick;
 mod unit;
 
 use args::*;
 use exchange::*;
-use formatter::*;
+use format::*;
 use pick::*;
 use unit::*;
 
@@ -19,7 +19,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 
     match &args.command {
-        Some(Commands::Set {}) => {}
+        Some(Commands::Guide {}) => {}
         _ => {
             args.valdate()?;
 
