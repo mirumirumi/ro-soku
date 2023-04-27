@@ -3,8 +3,8 @@ use clap::ValueEnum;
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum FormatType {
-    Json,
+    Raw,
     Csv,
     Tsv,
-    Raw,
+    Json,
 }
