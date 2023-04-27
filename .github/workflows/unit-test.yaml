@@ -1,0 +1,15 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - release/prd
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
