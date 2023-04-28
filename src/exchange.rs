@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
@@ -26,7 +26,9 @@ pub trait Retrieve: Debug {
 
     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
 
-    fn interval(&self, interval: &DurationAndUnit) -> String;
+    fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
+
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String;
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline>;
 }
@@ -98,10 +100,11 @@ impl Binance {
 
 impl Retrieve for Binance {
     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
+        // データの必要数をチェックしてlimit上限より大きかったら繰り返し実行するようにする
 
         let params = &[
-            ("symbol", args.symbol.clone()),
-            ("interval", self.interval(&args.interval)),
+            ("symbol", self.fit_symbol_to_req(&args.symbol)?),
+            ("interval", self.fit_interval_to_req(&args.interval)),
             ("startTime", args.term_start.unwrap().to_string()),
             ("endTime", args.term_end.unwrap().to_string()),
             ("limit", self.limit.to_string()),
@@ -109,7 +112,6 @@ impl Retrieve for Binance {
 
         let client = reqwest::blocking::Client::new();
         let res = client.get(&self.endpoint).query(params).send()?.text()?;
-
 
         if let serde_json::Value::Object(err) = serde_json::from_str(&res).unwrap() {
             if let Some(code) = err.get("code") {
@@ -126,7 +128,15 @@ impl Retrieve for Binance {
         Ok(res)
     }
 
-    fn interval(&self, interval: &DurationAndUnit) -> String {
+    fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error> {
+        let re = Regex::new(r"^(.*?)/(.*?)$").unwrap();
+        let matches = re.captures(symbol).ok_or(anyhow!(
+            "The symbol pair provided is incorrectly formatted."
+        ))?;
+        Ok(format!("{}{}", &matches[1], &matches[2]))
+    }
+
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
         let unit = format!("{:?}", interval.1);
         format!(
             "{}{}",

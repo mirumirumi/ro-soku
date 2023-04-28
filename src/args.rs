@@ -17,8 +17,8 @@ pub struct Cli {
     #[arg(short = 'x', long, value_enum, default_value = "binance")]
     pub exchange: Exchange,
 
-    /// Name of the symbol pair (depends on the exchange)
-    #[arg(short = 's', long, default_value = "BTCUSDT")]
+    /// Symbol pair with slashes (if you enter the format like BTC/USDT, ro-soku will automatically convert it for the respective exchanges)
+    #[arg(short = 's', long, default_value = "BTC/USDT")]
     pub symbol: String,
 
     /// Specify if you want the latest data for the past range (cannot be used with `--term-start`, `--term-end`)
