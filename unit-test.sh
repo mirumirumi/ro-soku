@@ -1,1 +1,2 @@
-cargo test -- --nocapture
+# cargo test -- --nocapture
+cargo test

@@ -3,6 +3,7 @@ use std::time;
 use clap::Parser;
 
 mod args;
+mod error;
 mod exchange;
 mod format;
 mod order;

@@ -201,7 +201,7 @@ impl ParsedArgs {
         } else {
             Ok(Some(
                 DateTime::<Utc>::from_str(term.as_str())
-                    .map_err(|e| anyhow!("Invalid format timestamp: {}", e))?
+                    .map_err(|e| anyhow!("Invalid timestamp format: {}", e))?
                     .timestamp()
                     * 1000,
             ))
@@ -211,7 +211,7 @@ impl ParsedArgs {
     fn check_term_relations(&self) -> Result<(), Error> {
         if self.term_start.is_some() && self.term_end.is_some() {
             ensure!(
-                self.term_start < self.term_end,
+                self.term_start <= self.term_end,
                 "The `--term-start` time must be earlier than the `--term-end` time."
             )
         };
@@ -249,6 +249,87 @@ mod tests {
     use chrono::{Duration, Utc};
 
     use super::*;
+
+    #[test]
+    fn test_parse_terms_unixtime() {
+        let term = "1144937572000".to_string();
+        let expected = Some(1144937572000);
+        assert_eq!(ParsedArgs::parse_terms(term).unwrap(), expected);
+    }
+
+    #[test]
+    fn test_parse_terms_rfc3339() {
+        let test_cases = [
+            ("2021-03-06T07:52:00+09:00".to_string(), Some(1614984720000)),
+            ("2021-03-05T22:52:00Z".to_string(), Some(1614984720000)),
+            ("2021-03-05T22:52:00+00:00".to_string(), Some(1614984720000)),
+        ];
+
+        for (i, (term, expected)) in test_cases.iter().enumerate() {
+            let result = ParsedArgs::parse_terms(term.to_string()).unwrap();
+            assert_eq!(
+                &result,
+                expected,
+                "\n\nFailed the test case: No.{:?}\n",
+                i + 1,
+            );
+        }
+    }
+
+    #[test]
+    fn test_check_term_relations_pass() {
+        let args1 = ParsedArgs {
+            exchange: Box::new(Binance::new()),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(1000000000000),
+            term_end: Some(1144937572000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+        let args2 = ParsedArgs {
+            exchange: Box::new(Binance::new()),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(1000000000000),
+            term_end: Some(1000000000000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+
+        for (i, args) in [args1, args2].iter().enumerate() {
+            assert!(
+                args.check_term_relations().is_ok(),
+                "\n\nFailed the test case: No.{:?},\n\n",
+                i + 1,
+            );
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_check_term_relations_panic() {
+        let args = ParsedArgs {
+            exchange: Box::new(Binance::new()),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(1144937572000),
+            term_end: Some(1000000000000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+
+        args.check_term_relations().unwrap();
+    }
 
     #[test]
     fn test_fit_to_term_args_past() {

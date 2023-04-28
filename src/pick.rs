@@ -257,10 +257,8 @@ mod tests {
             assert_eq!(
                 &result,
                 expected,
-                "\n\nFailed the test case: No.{:?},\n{:?}, {:?}\n\n",
+                "\n\nFailed the test case: No.{:?}\n",
                 i + 1,
-                data,
-                pick
             );
         }
     }

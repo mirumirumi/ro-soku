@@ -5,7 +5,7 @@ use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
 
-use crate::{args::*, pick::*, types::*, unit::*};
+use crate::{args::*, error::*, pick::*, types::*, unit::*};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Exchange {
@@ -112,6 +112,18 @@ impl Retrieve for Binance {
         let client = reqwest::blocking::Client::new();
         let res = client.get(&self.endpoint).query(params).send()?.text()?;
 
+
+        if let serde_json::Value::Object(err) = serde_json::from_str(&res).unwrap() {
+            if let Some(code) = err.get("code") {
+                match code.as_i64().unwrap() {
+                    -1120 => return Err(ExchangeResponseError::interval()),
+                    -1121 => return Err(ExchangeResponseError::symbol()),
+                    _ => return Err(ExchangeResponseError::unknown()),
+                }
+            } else {
+                return Err(ExchangeResponseError::unknown());
+            }
+        }
 
         Ok(res)
     }
