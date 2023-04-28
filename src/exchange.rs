@@ -98,14 +98,12 @@ impl Binance {
 
 impl Retrieve for Binance {
     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
-        let (start_time, end_time) = args.fit_to_term_args();
-
 
         let params = &[
             ("symbol", args.symbol.clone()),
             ("interval", self.interval(&args.interval)),
-            ("startTime", start_time.to_string()),
-            ("endTime", end_time.to_string()),
+            ("startTime", args.term_start.unwrap().to_string()),
+            ("endTime", args.term_end.unwrap().to_string()),
             ("limit", self.limit.to_string()),
         ];
 
@@ -179,39 +177,9 @@ impl Retrieve for Binance {
 
 #[cfg(test)]
 mod tests {
-    use chrono::{Duration, Utc};
     use serde_json::json;
 
     use super::*;
-    use crate::{format::*, order::*};
-
-    #[test]
-    fn test_fit_to_term_args_past() {
-        let args = ParsedArgs {
-            exchange: Box::new(Binance::new()),
-            symbol: String::new(),
-            past: true,
-            range: Some(DurationAndUnit(1, TermUnit::Day)),
-            term_start: None,
-            term_end: None,
-            interval: DurationAndUnit(1, TermUnit::Min),
-            pick: vec![],
-            order: Order::Asc,
-            output: FormatType::Json,
-        };
-
-        let (start_time, end_time) = args.fit_to_term_args();
-
-        // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
-        let now = Utc::now();
-        // let now = DateTime::parse_from_rfc3339("2000-01-02T00:00:00.0000Z").unwrap().with_timezone(&Utc);
-
-        let expected_start_time = (now - Duration::days(1)).timestamp() * 1000;
-        let expected_end_time = now.timestamp() * 1000;
-
-        assert_eq!(start_time, expected_start_time);
-        assert_eq!(end_time, expected_end_time);
-    }
 
     #[test]
     fn test_parse_as_kline_binance() {

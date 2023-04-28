@@ -190,6 +190,9 @@ impl ParsedArgs {
             output: value.format,
         };
 
+        // From here on, `past` and `range` are no longer used
+        let parsed_args = parsed_args.fit_to_term_args();
+
         parsed_args.check_term_relations()?;
 
         Ok(parsed_args)
@@ -219,7 +222,7 @@ impl ParsedArgs {
         Ok(())
     }
 
-    pub fn fit_to_term_args(&self) -> (i64, i64) {
+    fn fit_to_term_args(self) -> Self {
         let start_time;
         let end_time;
 
@@ -232,7 +235,11 @@ impl ParsedArgs {
             end_time = self.term_end.unwrap();
         }
 
-        (start_time, end_time)
+        ParsedArgs {
+            term_start: Some(start_time),
+            term_end: Some(end_time),
+            ..self
+        }
     }
 }
 
@@ -346,7 +353,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = args.fit_to_term_args();
+        let args = args.fit_to_term_args();
 
         // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
         let now = Utc::now();
@@ -355,8 +362,8 @@ mod tests {
         let expected_start_time = (now - Duration::days(1)).timestamp() * 1000;
         let expected_end_time = now.timestamp() * 1000;
 
-        assert_eq!(start_time, expected_start_time);
-        assert_eq!(end_time, expected_end_time);
+        assert_eq!(args.term_start.unwrap(), expected_start_time);
+        assert_eq!(args.term_end.unwrap(), expected_end_time);
     }
 
     #[test]
@@ -374,12 +381,12 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = args.fit_to_term_args();
+        let args = args.fit_to_term_args();
 
         let expected_start_time = 946684800000;
         let expected_end_time = 946771200000;
 
-        assert_eq!(start_time, expected_start_time);
-        assert_eq!(end_time, expected_end_time);
+        assert_eq!(args.term_start.unwrap(), expected_start_time);
+        assert_eq!(args.term_end.unwrap(), expected_end_time);
     }
 }
