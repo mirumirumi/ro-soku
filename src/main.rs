@@ -23,7 +23,6 @@ fn main() -> Result<(), anyhow::Error> {
             args.valdate()?;
 
             let args: ParsedArgs = args.try_into()?;
-            dbg!(&args);
 
             let data = args.exchange.retrieve(&args)?;
             let data = Order::sort(data, args.order);
@@ -33,6 +32,8 @@ fn main() -> Result<(), anyhow::Error> {
         }
     }
 
-    dbg!(timer.elapsed());
+    if cfg!(debug_assertions) {
+        println!("{:?}", timer.elapsed());
+    }
     Ok(())
 }

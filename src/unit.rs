@@ -31,11 +31,6 @@ impl DurationAndUnit {
         }
     }
 
-    pub fn to_binance(&self) -> String {
-        let unit = format!("{:?}", self.1);
-        format!("{}{}", self.0, unit.to_lowercase().chars().next().unwrap())
-    }
-
     pub fn to_bybit(&self) -> String {
         match self.1 {
             TermUnit::Sec => todo!("There is no sec param."),

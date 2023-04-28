@@ -218,6 +218,22 @@ impl ParsedArgs {
 
         Ok(())
     }
+
+    pub fn fit_to_term_args(&self) -> (i64, i64) {
+        let start_time;
+        let end_time;
+
+        if self.past {
+            let now = Utc::now();
+            start_time = (now - self.range.clone().unwrap().past_duration()).timestamp() * 1000;
+            end_time = now.timestamp() * 1000;
+        } else {
+            start_time = self.term_start.unwrap();
+            end_time = self.term_end.unwrap();
+        }
+
+        (start_time, end_time)
+    }
 }
 
 impl TryFrom<Cli> for ParsedArgs {
@@ -225,5 +241,64 @@ impl TryFrom<Cli> for ParsedArgs {
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
         Self::new(value, Box::new(Binance::new()))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chrono::{Duration, Utc};
+
+    use super::*;
+
+    #[test]
+    fn test_fit_to_term_args_past() {
+        let args = ParsedArgs {
+            exchange: Box::new(Binance::new()),
+            symbol: String::new(),
+            past: true,
+            range: Some(DurationAndUnit(1, TermUnit::Day)),
+            term_start: None,
+            term_end: None,
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+
+        let (start_time, end_time) = args.fit_to_term_args();
+
+        // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
+        let now = Utc::now();
+        // let now = DateTime::parse_from_rfc3339("2000-01-02T00:00:00.0000Z").unwrap().with_timezone(&Utc);
+
+        let expected_start_time = (now - Duration::days(1)).timestamp() * 1000;
+        let expected_end_time = now.timestamp() * 1000;
+
+        assert_eq!(start_time, expected_start_time);
+        assert_eq!(end_time, expected_end_time);
+    }
+
+    #[test]
+    fn test_fit_to_term_args_terms() {
+        let args = ParsedArgs {
+            exchange: Box::new(Binance::new()),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(946684800000),
+            term_end: Some(946771200000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+
+        let (start_time, end_time) = args.fit_to_term_args();
+
+        let expected_start_time = 946684800000;
+        let expected_end_time = 946771200000;
+
+        assert_eq!(start_time, expected_start_time);
+        assert_eq!(end_time, expected_end_time);
     }
 }

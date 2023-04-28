@@ -1,12 +1,11 @@
 use std::fmt::Debug;
 
 use anyhow::Error;
-use chrono::Utc;
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
 
-use crate::{args::*, pick::*, types::*};
+use crate::{args::*, pick::*, types::*, unit::*};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Exchange {
@@ -21,84 +20,25 @@ pub trait Retrieve: Debug {
     fn retrieve(&self, args: &ParsedArgs) -> Result<Vec<Raw>, Error> {
         let data = self.fetch(args)?;
         let data = self.parse_as_kline(data);
-        Ok(self.pick(data, &args.pick))
+        let data = Pick::up(data, &args.pick);
+        Ok(data)
     }
 
     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
 
-    fn parse_as_kline(
-        &self, /* Not really necessary, but removing it would add complexity */
-        data: String,
-    ) -> Vec<Kline>;
+    fn interval(&self, interval: &DurationAndUnit) -> String;
 
-    fn pick(&self /* Same as above */, data: Vec<Kline>, pick: &[Pick]) -> Vec<Raw> {
-
-        use Pick::*;
-
-        let mut result: Vec<Raw> = Vec::new();
-
-        for (i, d) in data.iter().enumerate() {
-            result.push(Vec::new());
-            for p in pick.iter() {
-                match p {
-                    T => {
-                        result[i].push(
-                            [(T, KlineNumber::Unixtime(d.unixtime_msec))]
-                                .iter()
-                                .cloned()
-                                .collect(),
-                        );
-                    }
-                    O => {
-                        result[i].push([(O, KlineNumber::Ohlcv(d.o))].iter().cloned().collect());
-                    }
-                    H => {
-                        result[i].push([(H, KlineNumber::Ohlcv(d.h))].iter().cloned().collect());
-                    }
-                    L => {
-                        result[i].push([(L, KlineNumber::Ohlcv(d.l))].iter().cloned().collect());
-                    }
-                    C => {
-                        result[i].push([(C, KlineNumber::Ohlcv(d.c))].iter().cloned().collect());
-                    }
-                    V => {
-                        result[i].push([(V, KlineNumber::Ohlcv(d.v))].iter().cloned().collect());
-                    }
-                };
-            }
-        }
-
-        result
-    }
-
-    fn fit_to_term_args(args: &ParsedArgs) -> (i64, i64)
-    where
-        Self: Sized,
-    {
-        let start_time;
-        let end_time;
-
-        if args.past {
-            let now = Utc::now();
-            start_time = (now - args.range.clone().unwrap().past_duration()).timestamp() * 1000;
-            end_time = now.timestamp() * 1000;
-        } else {
-            start_time = args.term_start.unwrap();
-            end_time = args.term_end.unwrap();
-        }
-
-        (start_time, end_time)
-    }
+    fn parse_as_kline(&self, data: String) -> Vec<Kline>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Kline {
-    unixtime_msec: i64,
-    o: f64,
-    h: f64,
-    l: f64,
-    c: f64,
-    v: f64,
+    pub unixtime_msec: i64,
+    pub o: f64,
+    pub h: f64,
+    pub l: f64,
+    pub c: f64,
+    pub v: f64,
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -118,68 +58,74 @@ impl KlineNumber {
 
 #[derive(Debug, Clone)]
 pub struct Binance {
-    base_url: String,
     endpoint: String,
+    limit: i32,
 }
 
 impl Binance {
     pub fn new() -> Self {
         Binance {
-            base_url: "https://data.binance.com".to_string(),
-            endpoint: "/api/v3/klines".to_string(),
+            endpoint: "https://data.binance.com/api/v3/klines".to_string(),
+            limit: 1000,
         }
     }
 
     #[allow(dead_code)]
     fn load_balancing(&self) -> Self {
+        // No test is written
+
         let mut rng = rand::thread_rng();
         let random_number = rng.gen_range(0..5);
 
-        let base_url = match random_number {
+        let endpoint = match random_number {
             0 => {
                 // This means we can use `https://api.binance.com` as is
-                self.base_url.clone()
+                self.endpoint.clone()
             }
             num => {
-                let re = Regex::new(r"api\.").unwrap();
-                re.replace(&self.base_url, format!("api{num}.")).to_string()
+                let re = Regex::new(r"https://api\.binance").unwrap();
+                re.replace(&self.endpoint, format!("https://api{}.binance", num))
+                    .to_string()
             }
         };
 
         Binance {
-            base_url,
-            endpoint: self.endpoint.clone(),
+            endpoint,
+            ..self.clone()
         }
     }
 }
 
 impl Retrieve for Binance {
     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
-
-        let url = format!("{}{}", self.base_url, self.endpoint);
-
-        let (start_time, end_time) = Self::fit_to_term_args(args);
+        let (start_time, end_time) = args.fit_to_term_args();
 
 
         let params = &[
             ("symbol", args.symbol.clone()),
-            ("interval", args.interval.to_binance()),
+            ("interval", self.interval(&args.interval)),
             ("startTime", start_time.to_string()),
             ("endTime", end_time.to_string()),
-            ("limit", 1000.to_string()),
+            ("limit", self.limit.to_string()),
         ];
 
-        dbg!(&params);
-
         let client = reqwest::blocking::Client::new();
-        let res = client.get(url).query(params).send()?.text()?;
+        let res = client.get(&self.endpoint).query(params).send()?.text()?;
 
 
         Ok(res)
     }
 
-    fn parse_as_kline(&self, data: String) -> Vec<Kline> {
+    fn interval(&self, interval: &DurationAndUnit) -> String {
+        let unit = format!("{:?}", interval.1);
+        format!(
+            "{}{}",
+            interval.0,
+            unit.to_lowercase().chars().next().unwrap()
+        )
+    }
 
+    fn parse_as_kline(&self, data: String) -> Vec<Kline> {
         serde_json::from_str::<Vec<Vec<serde_json::Value>>>(&data)
             .expect("Unexpected error! Failed to parse response to json.")
             .iter()
@@ -221,12 +167,11 @@ impl Retrieve for Binance {
 
 #[cfg(test)]
 mod tests {
-    // cargo test -- --nocapture
-
     use chrono::{Duration, Utc};
+    use serde_json::json;
 
     use super::*;
-    use crate::{format::*, order::*, unit::*};
+    use crate::{format::*, order::*};
 
     #[test]
     fn test_fit_to_term_args_past() {
@@ -243,7 +188,7 @@ mod tests {
             output: FormatType::Json,
         };
 
-        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
+        let (start_time, end_time) = args.fit_to_term_args();
 
         // Assume that 1 second cannot pass since `fit_to_term_args' was executed (I can't find a way to freeze it now)
         let now = Utc::now();
@@ -257,26 +202,54 @@ mod tests {
     }
 
     #[test]
-    fn test_fit_to_term_args_terms() {
-        let args = ParsedArgs {
-            exchange: Box::new(Binance::new()),
-            symbol: String::new(),
-            past: false,
-            range: None,
-            term_start: Some(946684800000),
-            term_end: Some(946771200000),
-            interval: DurationAndUnit(1, TermUnit::Min),
-            pick: vec![],
-            order: Order::Asc,
-            output: FormatType::Json,
-        };
+    fn test_parse_as_kline_binance() {
+        let binance = Binance::new();
 
-        let (start_time, end_time) = <Binance as Retrieve>::fit_to_term_args(&args);
+        let num1: i64 = 1619563200000;
+        let num1 = serde_json::Value::Number(num1.into());
 
-        let expected_start_time = 946684800000;
-        let expected_end_time = 946771200000;
+        let num2: i64 = 1619563260000;
+        let num2 = serde_json::Value::Number(num2.into());
+        let input = json!([
+            [
+                num1,
+                "0.00001394",
+                "0.00001427",
+                "0.00001363",
+                "0.00001420",
+                "592238.00000000"
+            ],
+            [
+                num2,
+                "0.00001420",
+                "0.00001428",
+                "0.00001394",
+                "0.00001410",
+                "428141.00000000"
+            ]
+        ])
+        .to_string();
 
-        assert_eq!(start_time, expected_start_time);
-        assert_eq!(end_time, expected_end_time);
+        let result = binance.parse_as_kline(input);
+        let expected = vec![
+            Kline {
+                unixtime_msec: 1619563200000,
+                o: 0.00001394,
+                h: 0.00001427,
+                l: 0.00001363,
+                c: 0.00001420,
+                v: 592238.0,
+            },
+            Kline {
+                unixtime_msec: 1619563260000,
+                o: 0.00001420,
+                h: 0.00001428,
+                l: 0.00001394,
+                c: 0.00001410,
+                v: 428141.0,
+            },
+        ];
+
+        assert_eq!(result, expected);
     }
 }
