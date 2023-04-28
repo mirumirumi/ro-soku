@@ -175,15 +175,18 @@ impl ParsedArgs {
             exchange,
             symbol: value.symbol,
             past: value.past.unwrap_or(false),
-            range: value
-                .range
-                .and_then(|range| range.parse::<DurationAndUnit>().ok()),
-            term_start: value
-                .term_start
-                .and_then(|term_start| Self::parse_terms(term_start).ok()?),
-            term_end: value
-                .term_end
-                .and_then(|term_end| Self::parse_terms(term_end).ok()?),
+            range: match value.range {
+                Some(range) => Some(range.parse::<DurationAndUnit>()?),
+                _ => None,
+            },
+            term_start: match value.term_start {
+                Some(term_start) => Self::parse_terms(term_start)?,
+                _ => None,
+            },
+            term_end: match value.term_end {
+                Some(term_end) => Self::parse_terms(term_end)?,
+                _ => None,
+            },
             interval: value.interval.parse::<DurationAndUnit>()?,
             pick: value.pick,
             order: value.order,
@@ -203,7 +206,7 @@ impl ParsedArgs {
             Ok(Some(term.parse::<i64>().unwrap()))
         } else {
             Ok(Some(
-                DateTime::<Utc>::from_str(term.as_str())
+                DateTime::<Utc>::from_str(&term)
                     .map_err(|e| anyhow!("Invalid timestamp format: {}", e))?
                     .timestamp()
                     * 1000,
