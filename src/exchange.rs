@@ -8,7 +8,7 @@ use regex::Regex;
 use crate::{args::*, error::*, pick::*, types::*, unit::*};
 
 #[derive(Debug, Clone, ValueEnum)]
-pub enum Exchange {
+pub enum ExchangeChoices {
     Binance,
     Bybit,
     // Okx,
@@ -16,11 +16,49 @@ pub enum Exchange {
     Bitbank,
 }
 
+#[derive(Debug, Clone)]
+pub enum Exchange {
+    Binance(Binance),
+    // Bybit,
+    // Okx,
+    // Kraken,
+    // Bitbank,
+}
+
+impl Exchange {
+    pub fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+        match self {
+            Exchange::Binance(binance) => binance.retrieve(args),
+        }
+    }
+}
+
 pub trait Retrieve: Debug {
-    fn retrieve(&self, args: &ParsedArgs) -> Result<Vec<Raw>, Error> {
-        let data = self.fetch(args)?;
-        let data = self.parse_as_kline(data);
-        let data = Pick::up(data, &args.pick);
+    fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+
+        let mut result: Vec<Kline> = Vec::new();
+        let mut should_continue = true;
+
+        while should_continue {
+            let res = self.fetch(args)?;
+            let klines = self.parse_as_kline(res);
+
+            match klines.last() {
+                Some(latest) => {
+                    let next_term_start = latest.unixtime_msec + args.interval.to_msec();
+
+                    if (args.term_end.unwrap()) < next_term_start {
+                        should_continue = false;
+                    } else {
+                        args.term_start = Some(next_term_start);
+                    }
+                }
+                None => should_continue = false,
+            };
+
+            result.extend(klines);
+        }
+        let data = Pick::up(result, &args.pick);
         Ok(data)
     }
 

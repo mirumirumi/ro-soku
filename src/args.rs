@@ -15,7 +15,7 @@ pub struct Cli {
 
     /// Name of the exchange
     #[arg(short = 'x', long, value_enum, default_value = "binance")]
-    pub exchange: Exchange,
+    pub exchange: ExchangeChoices,
 
     /// Symbol pair with slashes (if you enter the format like BTC/USDT, ro-soku will automatically convert it for the respective exchanges)
     #[arg(short = 's', long, default_value = "BTC/USDT")]
@@ -155,9 +155,9 @@ pub enum Commands {
     Guide {},
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ParsedArgs {
-    pub exchange: Box<dyn Retrieve>,
+    pub exchange: Exchange,
     pub symbol: String,
     pub past: bool,
     pub range: Option<DurationAndUnit>,
@@ -170,7 +170,7 @@ pub struct ParsedArgs {
 }
 
 impl ParsedArgs {
-    pub fn new(value: Cli, exchange: Box<dyn Retrieve>) -> Result<Self, anyhow::Error> {
+    pub fn new(value: Cli, exchange: Exchange) -> Result<Self, anyhow::Error> {
         let parsed_args = ParsedArgs {
             exchange,
             symbol: value.symbol,
@@ -201,6 +201,8 @@ impl ParsedArgs {
         Ok(parsed_args)
     }
 
+    /// Parse of `term_start` and `term_end` when unixtime is entered
+    /// directly and when RFC3339 format timestamps are entered.
     fn parse_terms(term: String) -> Result<Option<i64>, Error> {
         if Regex::new(r"^\d+$").unwrap().is_match(&term) {
             Ok(Some(term.parse::<i64>().unwrap()))
@@ -214,6 +216,9 @@ impl ParsedArgs {
         }
     }
 
+    /// Check that the `term_start`/`term_end` are the correct relation in terms of time.
+    /// At first glance, `.is_some()` may seem unnecessary, since this method is required regardless of
+    /// whether `--past` is used or not, but since the original input itself is Optional, it must be done this way.
     fn check_term_relations(&self) -> Result<(), Error> {
         if self.term_start.is_some() && self.term_end.is_some() {
             ensure!(
@@ -225,6 +230,9 @@ impl ParsedArgs {
         Ok(())
     }
 
+    /// Create a new `ParsedArgs` structure with the corresponding `term_start` and `term_end`
+    /// fields for the `--past` and non-past` cases, respectively.
+    /// After this method is executed, `past` and `range` are no longer needed at all.
     fn fit_to_term_args(self) -> Self {
         let start_time;
         let end_time;
@@ -250,7 +258,7 @@ impl TryFrom<Cli> for ParsedArgs {
     type Error = anyhow::Error;
 
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
-        Self::new(value, Box::new(Binance::new()))
+        Self::new(value, Exchange::Binance(Binance::new()))
     }
 }
 
@@ -289,7 +297,7 @@ mod tests {
     #[test]
     fn test_check_term_relations_pass() {
         let args1 = ParsedArgs {
-            exchange: Box::new(Binance::new()),
+            exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
             past: false,
             range: None,
@@ -301,7 +309,7 @@ mod tests {
             output: FormatType::Json,
         };
         let args2 = ParsedArgs {
-            exchange: Box::new(Binance::new()),
+            exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
             past: false,
             range: None,
@@ -326,7 +334,7 @@ mod tests {
     #[should_panic]
     fn test_check_term_relations_panic() {
         let args = ParsedArgs {
-            exchange: Box::new(Binance::new()),
+            exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
             past: false,
             range: None,
@@ -344,7 +352,7 @@ mod tests {
     #[test]
     fn test_fit_to_term_args_past() {
         let args = ParsedArgs {
-            exchange: Box::new(Binance::new()),
+            exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
             past: true,
             range: Some(DurationAndUnit(1, TermUnit::Day)),
@@ -372,7 +380,7 @@ mod tests {
     #[test]
     fn test_fit_to_term_args_terms() {
         let args = ParsedArgs {
-            exchange: Box::new(Binance::new()),
+            exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
             past: false,
             range: None,
