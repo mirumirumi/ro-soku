@@ -12,17 +12,17 @@ use crate::{args::*, error::*, pick::*, types::*, unit::*};
 pub enum ExchangeChoices {
     Binance,
     Bybit,
-    // Okx,
-    // Kraken,
-    Bitbank,
+    Okx,
+    Kraken,
+    // Bitbank,
 }
 
 #[derive(Debug, Clone)]
 pub enum Exchange {
     Binance(Binance),
-    // Bybit,
-    // Okx,
-    // Kraken,
+    Bybit(Bybit),
+    Okx(Okx),
+    Kraken(Kraken),
     // Bitbank,
 }
 
@@ -30,6 +30,9 @@ impl Exchange {
     pub fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
+            Exchange::Bybit(bybit) => bybit.retrieve(args),
+            Exchange::Okx(okx) => okx.retrieve(args),
+            Exchange::Kraken(kraken) => kraken.retrieve(args),
         }
     }
 }
@@ -200,27 +203,121 @@ impl Retrieve for Binance {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct Bybit {
+    endpoint: String,
+    limit: i32,
+}
+
+impl Bybit {
+    pub fn new() -> Self {
+        Bybit {
+            endpoint: "https://api.bybit.com/v5/market/kline".to_string(),
+            limit: 200,
+        }
+    }
+}
+
+impl Retrieve for Bybit {
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+        match interval.1 {
+            TermUnit::Sec => todo!("There is no sec param."),
+            TermUnit::Min => interval.0.to_string(),
+            TermUnit::Hour => (interval.0 * 60).to_string(),
+            TermUnit::Day => {
+                if interval.0 != 1 {
+                    println!("Info: when using `day` units, only `1` number can be used. Continue processing as `1day`.");
+                }
+                "D".to_string()
+            }
+            TermUnit::Week => {
+                if interval.0 != 1 {
+                    println!("Info: when using `week` units, only `1` number can be used. Continue processing as `1week`.");
+                }
+                "W".to_string()
+            }
+            TermUnit::Month => {
+                if interval.0 != 1 {
+                    println!("Info: when using `month` units, only `1` number can be used. Continue processing as `1month`.");
+                }
+                "M".to_string()
+            }
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Okx {
+    endpoint: String,
+    limit: i32,
+}
+
+impl Okx {
+    pub fn new() -> Self {
+        Okx {
+            endpoint: "https://www.okx.com/api/v5/market/candles".to_string(),
+            limit: 300,
+        }
+    }
+}
+
+impl Retrieve for Okx {
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+        let unit = format!("{:?}", interval.1);
+        format!(
+            "{}{}",
+            interval.0,
+            unit.to_lowercase().chars().next().unwrap()
+        )
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Kraken {
+    endpoint: String,
+    limit: i32,
+}
+
+impl Kraken {
+    pub fn new() -> Self {
+        Kraken {
+            endpoint: "https://api.kraken.com/0/public/OHLC".to_string(),
+            // A little different from other exchanges
+            limit: 720,
+        }
+    }
+}
+
+impl Retrieve for Kraken {
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+        match interval.1 {
+            TermUnit::Sec => todo!("There is no sec param."),
+            TermUnit::Min => interval.0.to_string(),
+            TermUnit::Hour => (interval.0 * 60).to_string(),
+            TermUnit::Day => (interval.0 as i32 * 1440).to_string(),
+            TermUnit::Week => (interval.0 as i32 * 1440 * 7).to_string(),
+            TermUnit::Month => todo!("There is no 43200 mins param."),
+        }
+    }
+}
+
 // #[derive(Debug, Clone)]
-// pub struct Bybit {
-//     // cdn-request-id
+// pub struct Bitbank {
+//     endpoint: String,
 // }
 
-// impl Bybit {}
-
-// impl Retrieve for Bybit {
-//     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
-//         Ok("".to_string())
+// impl Bitbank {
+//     pub fn new() -> Self {
+//         Bitbank {
+//             endpoint: "https://public.bitbank.cc/btc_jpy/candlestick/1min/20230429".to_string(),
+//         }
 //     }
 // }
 
-// #[derive(Debug, Clone)]
-// pub struct Bitbank {}
-
-// impl Bitbank {}
-
 // impl Retrieve for Bitbank {
-//     fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
-//         Ok("".to_string())
+//     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+//         let unit = format!("{:?}", interval.1);
+//         format!("{}{}", interval.0, unit.to_lowercase())
 //     }
 // }
 

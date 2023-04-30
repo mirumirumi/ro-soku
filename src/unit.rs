@@ -1,5 +1,5 @@
 use std::{
-    num::{self, ParseIntError},
+    num::{ParseIntError},
     str::FromStr,
 };
 
@@ -45,53 +45,6 @@ impl DurationAndUnit {
             TermUnit::Week => Duration::weeks(number as i64),
             TermUnit::Month => Duration::days(number as i64) * 30,
         }
-    }
-
-    pub fn to_bybit(&self) -> String {
-        match self.1 {
-            TermUnit::Sec => todo!("There is no sec param."),
-            TermUnit::Min => self.0.to_string(),
-            TermUnit::Hour => (self.0 * 60).to_string(),
-            TermUnit::Day => {
-                if self.0 != 1 {
-                    println!("Info: when using `day` units, only `1` number can be used. Continue processing as `1day`.");
-                }
-                "D".to_string()
-            }
-            TermUnit::Week => {
-                if self.0 != 1 {
-                    println!("Info: when using `week` units, only `1` number can be used. Continue processing as `1week`.");
-                }
-                "W".to_string()
-            }
-            TermUnit::Month => {
-                if self.0 != 1 {
-                    println!("Info: when using `month` units, only `1` number can be used. Continue processing as `1month`.");
-                }
-                "M".to_string()
-            }
-        }
-    }
-
-    pub fn to_okx(&self) -> String {
-        let unit = format!("{:?}", self.1);
-        format!("{}{}", self.0, unit.to_lowercase().chars().next().unwrap())
-    }
-
-    pub fn to_kraken(&self) -> String {
-        match self.1 {
-            TermUnit::Sec => todo!("There is no sec param."),
-            TermUnit::Min => self.0.to_string(),
-            TermUnit::Hour => (self.0 * 60).to_string(),
-            TermUnit::Day => (self.0 as i32 * 1440).to_string(),
-            TermUnit::Week => (self.0 as i32 * 1440 * 7).to_string(),
-            TermUnit::Month => todo!("There is no 43200 mins param."),
-        }
-    }
-
-    pub fn to_bitbank(&self) -> String {
-        let unit = format!("{:?}", self.1);
-        format!("{}{}", self.0, unit.to_lowercase())
     }
 }
 
