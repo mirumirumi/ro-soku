@@ -12,12 +12,17 @@ pub enum FormatType {
 
 impl FormatType {
     pub fn format(&self, data: &[Raw]) -> String {
-        match self {
+        let mut result = match self {
             FormatType::Raw => self.raw(data),
             FormatType::Csv => self.csv(data),
             FormatType::Tsv => self.tsv(data),
             FormatType::Json => self.json(data),
-        }
+        };
+
+        // Remove trailling newline
+        result.truncate(result.len() - 1);
+
+        result
     }
 
     fn raw(&self, data: &[Raw]) -> String {
@@ -146,7 +151,7 @@ impl FormatType {
             result.push_str(&format!("\n{space_4}}},\n"));
         }
         result.truncate(result.len() - 2 /* `,\n` */);
-        result.push_str("\n]");
+        result.push_str("\n]\n");
 
         result
     }
