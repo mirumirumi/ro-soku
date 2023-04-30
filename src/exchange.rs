@@ -4,6 +4,7 @@ use anyhow::{anyhow, Error};
 use clap::ValueEnum;
 use rand::Rng;
 use regex::Regex;
+use reqwest::blocking::Client;
 
 use crate::{args::*, error::*, pick::*, types::*, unit::*};
 
@@ -35,12 +36,13 @@ impl Exchange {
 
 pub trait Retrieve: Debug {
     fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
-
         let mut result: Vec<Kline> = Vec::new();
         let mut should_continue = true;
 
         while should_continue {
-            let res = self.fetch(args)?;
+            let client = reqwest::blocking::Client::new();
+
+            let res = self.fetch(args, &client)?;
             let klines = self.parse_as_kline(res);
 
             match klines.last() {
@@ -58,11 +60,12 @@ pub trait Retrieve: Debug {
 
             result.extend(klines);
         }
+
         let data = Pick::up(result, &args.pick);
         Ok(data)
     }
 
-    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error>;
+    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error>;
 
     fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
 
@@ -137,9 +140,8 @@ impl Binance {
 }
 
 impl Retrieve for Binance {
-    fn fetch(&self, args: &ParsedArgs) -> Result<String, Error> {
         // データの必要数をチェックしてlimit上限より大きかったら繰り返し実行するようにする
-
+    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
         let params = &[
             ("symbol", self.fit_symbol_to_req(&args.symbol)?),
             ("interval", self.fit_interval_to_req(&args.interval)),
@@ -148,7 +150,6 @@ impl Retrieve for Binance {
             ("limit", self.limit.to_string()),
         ];
 
-        let client = reqwest::blocking::Client::new();
         let res = client.get(&self.endpoint).query(params).send()?.text()?;
 
         if let serde_json::Value::Object(err) = serde_json::from_str(&res).unwrap() {
