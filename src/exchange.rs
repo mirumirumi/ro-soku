@@ -88,7 +88,8 @@ pub trait Retrieve: Debug {
 
     fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
 
-    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String;
+    // Some exchange intervals may be invalid
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error>;
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline>;
 }

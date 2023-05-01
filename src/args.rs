@@ -314,7 +314,7 @@ mod tests {
     }
 
     #[test]
-    fn test_check_term_relations_pass() {
+    fn test_check_term_relations() {
         let args1 = ParsedArgs {
             exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),

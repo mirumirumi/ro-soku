@@ -49,7 +49,7 @@ impl Retrieve for Binance {
     fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
         let params = &[
             ("symbol", self.fit_symbol_to_req(&args.symbol)?),
-            ("interval", self.fit_interval_to_req(&args.interval)),
+            ("interval", self.fit_interval_to_req(&args.interval)?),
             ("startTime", args.term_start.unwrap().to_string()),
             ("endTime", args.term_end.unwrap().to_string()),
             ("limit", self.limit.to_string()),
@@ -80,13 +80,13 @@ impl Retrieve for Binance {
         Ok(format!("{}{}", &matches[1], &matches[2]))
     }
 
-    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
         let unit = format!("{:?}", interval.1);
-        format!(
+        Ok(format!(
             "{}{}",
             interval.0,
             unit.to_lowercase().chars().next().unwrap()
-        )
+        ))
     }
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline> {
@@ -110,6 +110,32 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn test_fit_symbol_to_req() {
+        let binance = Binance::new();
+        assert_eq!(
+            binance.fit_symbol_to_req("ETH/BNB").unwrap(),
+            "ETHBNB".to_string()
+        )
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_fit_symbol_to_req_panic() {
+        let binance = Binance::new();
+        binance.fit_symbol_to_req("ETHBNB").unwrap();
+    }
+
+    #[test]
+    fn test_fit_interval_to_req() {
+        let binance = Binance::new();
+        let duration_and_unit = DurationAndUnit::from_str("15min").unwrap();
+        assert_eq!(
+            binance.fit_interval_to_req(&duration_and_unit).unwrap(),
+            "15m".to_string()
+        );
+    }
 
     #[test]
     fn test_parse_as_kline_binance() {

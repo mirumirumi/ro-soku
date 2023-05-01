@@ -20,14 +20,14 @@ impl Okx {
 }
 
 impl Retrieve for Okx {
-    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
         // Same code as Binance, so the test already exists
 
         let unit = format!("{:?}", interval.1);
-        format!(
+        Ok(format!(
             "{}{}",
             interval.0,
             unit.to_lowercase().chars().next().unwrap()
-        )
+        ))
     }
 }

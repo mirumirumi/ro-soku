@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Error};
+use anyhow::{anyhow, bail, Error};
 use regex::Regex;
 use reqwest::blocking::Client;
 use serde::Deserialize;
@@ -24,17 +24,17 @@ struct Response {
     #[allow(dead_code)]
     #[serde(alias = "retCode")]
     ret_code: serde_json::Number,
-
     #[allow(dead_code)]
     #[serde(alias = "retMsg")]
     ret_msg: String,
-
     result: ResultInResponse,
 }
 
 #[derive(Deserialize)]
 struct ResultInResponse {
+    #[allow(dead_code)]
     category: String,
+    #[allow(dead_code)]
     symbol: String,
     list: Vec<Vec<serde_json::Value>>,
 }
@@ -54,7 +54,7 @@ impl Retrieve for Bybit {
         let params = &[
             ("category", "spot".to_string()),
             ("symbol", self.fit_symbol_to_req(&args.symbol)?),
-            ("interval", self.fit_interval_to_req(&args.interval)),
+            ("interval", self.fit_interval_to_req(&args.interval)?),
             ("start", args.term_start.unwrap().to_string()),
             ("end", args.term_end.unwrap().to_string()),
             ("limit", self.limit.to_string()),
@@ -75,30 +75,31 @@ impl Retrieve for Bybit {
         Ok(format!("{}{}", &matches[1], &matches[2]))
     }
 
-    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> String {
-        match interval.1 {
-            TermUnit::Sec => "".to_string(), /*Err(anyhow!(""))*/
+    fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
+        let result = match interval.1 {
+            TermUnit::Sec => return Err(anyhow!("Bybit does not support candlestick of seconds")),
             TermUnit::Min => interval.0.to_string(),
             TermUnit::Hour => (interval.0 * 60).to_string(),
             TermUnit::Day => {
                 if interval.0 != 1 {
-                    println!("info: In Bybit, when using `day` units, only `1` number can be used. Continue processing as `1day`.");
+                    return Err(anyhow!("warn: In Bybit, when using `day` units, only `1` number can be used. Continue processing as `1day`."));
                 }
                 "D".to_string()
             }
             TermUnit::Week => {
                 if interval.0 != 1 {
-                    println!("info: In Bybit, when using `week` units, only `1` number can be used. Continue processing as `1week`.");
+                    return Err(anyhow!("warn: In Bybit, when using `week` units, only `1` number can be used. Continue processing as `week`."));
                 }
                 "W".to_string()
             }
             TermUnit::Month => {
                 if interval.0 != 1 {
-                    println!("info: In Bybit, when using `month` units, only `1` number can be used. Continue processing as `1month`.");
+                    return Err(anyhow!("warn: In Bybit, when using `1month` units, only `1` number can be used. Continue processing as `1month`."));
                 }
                 "M".to_string()
             }
-        }
+        };
+        Ok(result)
     }
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline> {
@@ -121,10 +122,70 @@ impl Retrieve for Bybit {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     #[test]
-    fn test_fit_interval_to_req() {}
+    fn test_fit_interval_to_req() {
+        let bybit = Bybit::new();
+
+        let duration_and_unit_1 = DurationAndUnit::from_str("1min").unwrap();
+        let duration_and_unit_2 = DurationAndUnit::from_str("15min").unwrap();
+        let duration_and_unit_3 = DurationAndUnit::from_str("4hour").unwrap();
+
+        let expected_1 = "1".to_string();
+        let expected_2 = "15".to_string();
+        let expected_3 = "240".to_string();
+
+        let test_cases = [
+            (duration_and_unit_1, expected_1),
+            (duration_and_unit_2, expected_2),
+            (duration_and_unit_3, expected_3),
+        ];
+
+        for (i, (duration, expected)) in test_cases.iter().enumerate() {
+            let result = bybit.fit_interval_to_req(duration).unwrap();
+            assert_eq!(
+                &result,
+                expected,
+                "\n\nFailed the test case: No.{:?}\n",
+                i + 1,
+            );
+        }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_fit_interval_to_req_panic_1() {
+        let bybit = Bybit::new();
+        let input = DurationAndUnit::from_str("1sec").unwrap();
+        bybit.fit_interval_to_req(&input).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_fit_interval_to_req_panic_2() {
+        let bybit = Bybit::new();
+        let input = DurationAndUnit::from_str("3day").unwrap();
+        bybit.fit_interval_to_req(&input).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_fit_interval_to_req_panic_3() {
+        let bybit = Bybit::new();
+        let input = DurationAndUnit::from_str("2week").unwrap();
+        bybit.fit_interval_to_req(&input).unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_fit_interval_to_req_panic_4() {
+        let bybit = Bybit::new();
+        let input = DurationAndUnit::from_str("4month").unwrap();
+        bybit.fit_interval_to_req(&input).unwrap();
+    }
 
     #[test]
     fn test_parse_as_kline_bybit() {

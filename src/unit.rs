@@ -1,7 +1,4 @@
-use std::{
-    num::{ParseIntError},
-    str::FromStr,
-};
+use std::{num::ParseIntError, str::FromStr};
 
 use chrono::Duration;
 use regex::Regex;
@@ -102,7 +99,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_to_msec_msec() {
+    fn test_to_msec() {
         let sec_1 = DurationAndUnit::from_str("1sec").unwrap();
         let min_1 = DurationAndUnit::from_str("1min").unwrap();
         let min_15 = DurationAndUnit::from_str("15min").unwrap();
