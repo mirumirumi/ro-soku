@@ -5,7 +5,20 @@ use chrono::{DateTime, Utc};
 use clap::{ArgAction, Parser, Subcommand};
 use regex::Regex;
 
-use crate::{exchange::*, format::*, order::*, pick::*, unit::*};
+use crate::{
+    exchange::{
+        binance::*,
+        bybit::*,
+        // kraken::*,
+        // okx::*,
+        // bitbank::*
+        *,
+    },
+    format::*,
+    order::*,
+    pick::*,
+    unit::*,
+};
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]
@@ -261,8 +274,9 @@ impl TryFrom<Cli> for ParsedArgs {
         match value.exchange {
             ExchangeChoices::Binance => Self::new(value, Exchange::Binance(Binance::new())),
             ExchangeChoices::Bybit => Self::new(value, Exchange::Bybit(Bybit::new())),
-            ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
-            ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
+            // ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
+            // ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
+            _ => unimplemented!(),
         }
     }
 }
