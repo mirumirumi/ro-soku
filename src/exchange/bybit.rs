@@ -21,22 +21,21 @@ pub struct Bybit {
 
 #[derive(Deserialize)]
 struct Response {
-    #[allow(dead_code)]
     #[serde(alias = "retCode")]
     ret_code: serde_json::Number,
-    #[allow(dead_code)]
     #[serde(alias = "retMsg")]
     ret_msg: String,
     result: ResultInResponse,
 }
 
 #[derive(Deserialize)]
+// In case of error, to be empty `{}` (reason all fields are optional)
 struct ResultInResponse {
     #[allow(dead_code)]
-    category: String,
+    category: Option<String>,
     #[allow(dead_code)]
-    symbol: String,
-    list: Vec<Vec<serde_json::Value>>,
+    symbol: Option<String>,
+    list: Option<Vec<Vec<serde_json::Value>>>,
 }
 
 impl Bybit {
@@ -61,6 +60,22 @@ impl Retrieve for Bybit {
         ];
 
         let res = client.get(&self.endpoint).query(params).send()?.text()?;
+
+        let response = serde_json::from_str::<Response>(&res)
+            .expect("Unexpected error! Failed to parse response (for error code) to json.");
+        match response
+            .ret_code
+            .as_i64()
+            .expect("Unexpected error! Failed to parse response (for error code) to json.")
+        {
+            10001 => match response.ret_msg.as_str() {
+                "Invalid period!" => return Err(ExchangeResponseError::interval()),
+                "Not supported symbols" => return Err(ExchangeResponseError::symbol()),
+                _ => return Err(ExchangeResponseError::unknown()),
+            },
+            10002 => return Err(ExchangeResponseError::too_many_requests()),
+            _ => (/* Succeeded! */),
+        }
 
         Ok(res)
     }
@@ -107,6 +122,7 @@ impl Retrieve for Bybit {
             .expect("Unexpected error! Failed to parse response to json.")
             .result
             .list
+            .unwrap(/* Error handling has already been completed in `fetch()` */)
             .iter()
             .map(|raw| Kline {
                 unixtime_msec: raw[0].as_str().unwrap().to_owned().parse::<i64>().unwrap(),

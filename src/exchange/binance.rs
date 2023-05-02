@@ -60,6 +60,7 @@ impl Retrieve for Binance {
         if let serde_json::Value::Object(err) = serde_json::from_str(&res).unwrap() {
             if let Some(code) = err.get("code") {
                 match code.as_i64().unwrap() {
+                    -1003 => return Err(ExchangeResponseError::too_many_requests()),
                     -1120 => return Err(ExchangeResponseError::interval()),
                     -1121 => return Err(ExchangeResponseError::symbol()),
                     _ => return Err(ExchangeResponseError::unknown()),

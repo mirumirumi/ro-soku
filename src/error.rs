@@ -14,4 +14,10 @@ impl ExchangeResponseError {
     pub fn interval() -> Error {
         anyhow!("The specified interval of candlestick does not exist in this exchange.")
     }
+
+    pub fn too_many_requests() -> Error {
+        anyhow!(
+            "Too many requests were rejected by the exchange's server. Let's have some coffee ☕."
+        )
+    }
 }
