@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail, Error};
+use anyhow::{anyhow, Error};
 use regex::Regex;
 use reqwest::blocking::Client;
 use serde::Deserialize;

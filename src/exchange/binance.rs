@@ -107,6 +107,8 @@ impl Retrieve for Binance {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use serde_json::json;
 
     use super::*;
