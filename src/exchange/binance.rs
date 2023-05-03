@@ -2,6 +2,7 @@ use anyhow::{anyhow, Error};
 use rand::Rng;
 use regex::Regex;
 use reqwest::blocking::Client;
+use serde::Deserialize;
 
 use crate::{args::*, error::*, exchange::*, unit::*};
 
@@ -9,6 +10,12 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 pub struct Binance {
     endpoint: String,
     limit: i32,
+}
+
+#[derive(Deserialize)]
+struct ResponseOnError {
+    code: i32,
+    msg: String,
 }
 
 impl Binance {
@@ -57,16 +64,12 @@ impl Retrieve for Binance {
 
         let res = client.get(&self.endpoint).query(params).send()?.text()?;
 
-        if let serde_json::Value::Object(err) = serde_json::from_str(&res).unwrap() {
-            if let Some(code) = err.get("code") {
-                match code.as_i64().unwrap() {
-                    -1003 => return Err(ExchangeResponseError::too_many_requests()),
-                    -1120 => return Err(ExchangeResponseError::interval()),
-                    -1121 => return Err(ExchangeResponseError::symbol()),
-                    _ => return Err(ExchangeResponseError::wrap_error("err".to_string())),
-                }
-            } else {
-                return Err(ExchangeResponseError::unknown());
+        if let Ok(response) = serde_json::from_str::<ResponseOnError>(&res) {
+            match response.code {
+                -1003 => return Err(ExchangeResponseError::too_many_requests()),
+                -1120 => return Err(ExchangeResponseError::interval()),
+                -1121 => return Err(ExchangeResponseError::symbol()),
+                _ => return Err(ExchangeResponseError::wrap_error(response.msg)),
             }
         }
 
