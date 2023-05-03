@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use clap::ValueEnum;
 
-use crate::{pick::*, types::*};
+use crate::{exchange::*, types::*};
 
 #[derive(Debug, Clone, ValueEnum)]
 pub enum Order {
@@ -11,22 +11,30 @@ pub enum Order {
 }
 
 impl Order {
-    pub fn sort(mut data: Vec<Raw>, order: Self) -> Vec<Raw> {
-        let sort = |a: &Raw, b: &Raw| {
-            let unixtime_a = a.iter().flat_map(|map| map.get(&Pick::T)).next().unwrap();
-            let unixtime_b = b.iter().flat_map(|map| map.get(&Pick::T)).next().unwrap();
-            unixtime_a
-                .partial_cmp(unixtime_b)
-                .unwrap_or(Ordering::Equal)
-        };
-
+    /// Use to print finally result
+    pub fn sort(mut data: Vec<Raw>, order: &Self) -> Vec<Raw> {
         match order {
-            Self::Asc => data.sort_unstable_by(sort),
+            Self::Asc => {
+                // Already sorted by `sort_kline_asc()`
+                return data;
+            }
             Self::Desc => {
-                data.sort_unstable_by(sort);
                 data.reverse();
             }
         }
+
+        data
+    }
+
+    /// Use to temporarily sort `Vec<Kline>` in ascending order for repeated fetches
+    pub fn sort_kline_asc(mut data: Vec<Kline>) -> Vec<Kline> {
+        data.sort_unstable_by(|a: &Kline, b: &Kline| {
+            let unixtime_a = a.unixtime_msec;
+            let unixtime_b = b.unixtime_msec;
+            unixtime_a
+                .partial_cmp(&unixtime_b)
+                .unwrap_or(Ordering::Equal)
+        });
 
         data
     }

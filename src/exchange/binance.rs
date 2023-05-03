@@ -63,7 +63,7 @@ impl Retrieve for Binance {
                     -1003 => return Err(ExchangeResponseError::too_many_requests()),
                     -1120 => return Err(ExchangeResponseError::interval()),
                     -1121 => return Err(ExchangeResponseError::symbol()),
-                    _ => return Err(ExchangeResponseError::unknown()),
+                    _ => return Err(ExchangeResponseError::wrap_error("err".to_string())),
                 }
             } else {
                 return Err(ExchangeResponseError::unknown());

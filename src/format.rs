@@ -20,7 +20,9 @@ impl FormatType {
         };
 
         // Remove trailling newline
-        result.truncate(result.len() - 1);
+        if !result.is_empty() {
+            result.truncate(result.len() - 1);
+        }
 
         result
     }

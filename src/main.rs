@@ -26,7 +26,7 @@ fn main() -> Result<(), anyhow::Error> {
             let args: ParsedArgs = args.try_into()?;
 
             let data = args.exchange.retrieve(&mut args.clone())?;
-            let data = Order::sort(data, args.order);
+            let data = Order::sort(data, &args.order);
             let data = args.output.format(&data);
 
             println!("{}", data);

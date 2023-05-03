@@ -7,7 +7,7 @@ use reqwest::blocking::Client;
 pub mod binance;
 pub mod bybit;
 // pub mod kraken;
-// pub mod okx;
+pub mod okx;
 // pub mod bitbank;
 
 use crate::{
@@ -16,9 +16,10 @@ use crate::{
         binance::*,
         bybit::*,
         // kraken::*,
-        // okx::*,
+        okx::*,
         // bitbank::*
     },
+    order::*,
     pick::*,
     types::*,
     unit::*,
@@ -37,7 +38,7 @@ pub enum ExchangeChoices {
 pub enum Exchange {
     Binance(Binance),
     Bybit(Bybit),
-    // Okx(Okx),
+    Okx(Okx),
     // Kraken(Kraken),
     // Bitbank,
 }
@@ -47,7 +48,7 @@ impl Exchange {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
             Exchange::Bybit(bybit) => bybit.retrieve(args),
-            // Exchange::Okx(okx) => okx.retrieve(args),
+            Exchange::Okx(okx) => okx.retrieve(args),
             // Exchange::Kraken(kraken) => kraken.retrieve(args),
         }
     }
@@ -63,8 +64,9 @@ pub trait Retrieve: Debug {
 
             let res = self.fetch(args, &client)?;
             let klines = self.parse_as_kline(res);
+            let klines_asc = Order::sort_kline_asc(klines);
 
-            match klines.last() {
+            match klines_asc.last() {
                 Some(latest) => {
                     let next_term_start = latest.unixtime_msec + args.interval.to_msec();
 
@@ -77,7 +79,7 @@ pub trait Retrieve: Debug {
                 None => should_continue = false,
             };
 
-            result.extend(klines);
+            result.extend(klines_asc);
         }
 
         let data = Pick::up(result, &args.pick);
@@ -94,7 +96,7 @@ pub trait Retrieve: Debug {
     fn parse_as_kline(&self, data: String) -> Vec<Kline>;
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Kline {
     pub unixtime_msec: i64,
     pub o: f64,

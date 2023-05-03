@@ -3,10 +3,6 @@ use anyhow::{anyhow, Error};
 pub struct ExchangeResponseError;
 
 impl ExchangeResponseError {
-    pub fn unknown() -> Error {
-        anyhow!("Unexpected error has occurred, perhaps the exchange specifications have changed.")
-    }
-
     pub fn symbol() -> Error {
         anyhow!("The specified symbol pair does not exist in this exchange.")
     }
@@ -19,5 +15,13 @@ impl ExchangeResponseError {
         anyhow!(
             "Too many requests were rejected by the exchange's server. Let's have some coffee ☕."
         )
+    }
+
+    pub fn wrap_error(err: String) -> Error {
+        anyhow!(err)
+    }
+
+    pub fn unknown() -> Error {
+        anyhow!("Unexpected error has occurred, perhaps the exchange specifications have changed.")
     }
 }

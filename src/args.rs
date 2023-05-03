@@ -10,7 +10,7 @@ use crate::{
         binance::*,
         bybit::*,
         // kraken::*,
-        // okx::*,
+        okx::*,
         // bitbank::*
         *,
     },
@@ -78,11 +78,11 @@ impl Cli {
         let mut errors: Vec<String> = Vec::new();
 
         if let Err(e) = self.check_exists_command_set() {
-            errors.push(format!("- {e}"));
+            errors.push(format!("  - {e}"));
         }
 
         if let Err(e) = self.check_argument_consistency() {
-            errors.push(format!("- {e}"));
+            errors.push(format!("  - {e}"));
         }
 
         if !errors.is_empty() {
@@ -274,7 +274,7 @@ impl TryFrom<Cli> for ParsedArgs {
         match value.exchange {
             ExchangeChoices::Binance => Self::new(value, Exchange::Binance(Binance::new())),
             ExchangeChoices::Bybit => Self::new(value, Exchange::Bybit(Bybit::new())),
-            // ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
+            ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
             // ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
             _ => unimplemented!(),
         }

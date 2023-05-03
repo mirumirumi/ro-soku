@@ -68,13 +68,14 @@ impl Retrieve for Bybit {
             .as_i64()
             .expect("Unexpected error! Failed to parse response (for error code) to json.")
         {
+            0 => (/* Succeeded! */),
             10001 => match response.ret_msg.as_str() {
                 "Invalid period!" => return Err(ExchangeResponseError::interval()),
                 "Not supported symbols" => return Err(ExchangeResponseError::symbol()),
                 _ => return Err(ExchangeResponseError::unknown()),
             },
             10002 => return Err(ExchangeResponseError::too_many_requests()),
-            _ => (/* Succeeded! */),
+            _ => return Err(ExchangeResponseError::wrap_error(response.ret_msg)),
         }
 
         Ok(res)
