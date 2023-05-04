@@ -141,67 +141,25 @@ impl Retrieve for Bybit {
 mod tests {
     use std::str::FromStr;
 
+    use rstest::*;
+
     use super::*;
 
-    #[test]
-    fn test_fit_interval_to_req() {
-        let bybit = Bybit::new();
-
-        let duration_and_unit_1 = DurationAndUnit::from_str("1min").unwrap();
-        let duration_and_unit_2 = DurationAndUnit::from_str("15min").unwrap();
-        let duration_and_unit_3 = DurationAndUnit::from_str("4hour").unwrap();
-
-        let expected_1 = "1".to_string();
-        let expected_2 = "15".to_string();
-        let expected_3 = "240".to_string();
-
-        let test_cases = [
-            (duration_and_unit_1, expected_1),
-            (duration_and_unit_2, expected_2),
-            (duration_and_unit_3, expected_3),
-        ];
-
-        for (i, (duration, expected)) in test_cases.iter().enumerate() {
-            let result = bybit.fit_interval_to_req(duration).unwrap();
-            assert_eq!(
-                &result,
-                expected,
-                "\n\nFailed the test case: No.{:?}\n",
-                i + 1,
-            );
-        }
-    }
-
-    #[test]
+    #[rstest]
+    #[case(DurationAndUnit::from_str("1min").unwrap(), "1".to_string())]
+    #[case(DurationAndUnit::from_str("15min").unwrap(), "15".to_string())]
+    #[case(DurationAndUnit::from_str("4hour").unwrap(), "240".to_string())]
     #[should_panic]
-    fn test_fit_interval_to_req_panic_1() {
-        let bybit = Bybit::new();
-        let input = DurationAndUnit::from_str("1sec").unwrap();
-        bybit.fit_interval_to_req(&input).unwrap();
-    }
-
-    #[test]
+    #[case(DurationAndUnit::from_str("1sec").unwrap(), "panic".to_string())]
     #[should_panic]
-    fn test_fit_interval_to_req_panic_2() {
-        let bybit = Bybit::new();
-        let input = DurationAndUnit::from_str("3day").unwrap();
-        bybit.fit_interval_to_req(&input).unwrap();
-    }
-
-    #[test]
+    #[case(DurationAndUnit::from_str("3day").unwrap(), "panic".to_string())]
     #[should_panic]
-    fn test_fit_interval_to_req_panic_3() {
-        let bybit = Bybit::new();
-        let input = DurationAndUnit::from_str("2week").unwrap();
-        bybit.fit_interval_to_req(&input).unwrap();
-    }
-
-    #[test]
+    #[case(DurationAndUnit::from_str("2week").unwrap(), "panic".to_string())]
     #[should_panic]
-    fn test_fit_interval_to_req_panic_4() {
+    #[case(DurationAndUnit::from_str("4month").unwrap(), "panic".to_string())]
+    fn test_fit_interval_to_req(#[case] input: DurationAndUnit, #[case] expected: String) {
         let bybit = Bybit::new();
-        let input = DurationAndUnit::from_str("4month").unwrap();
-        bybit.fit_interval_to_req(&input).unwrap();
+        assert_eq!(bybit.fit_interval_to_req(&input).unwrap(), expected);
     }
 
     #[test]

@@ -113,24 +113,18 @@ impl Retrieve for Binance {
 mod tests {
     use std::str::FromStr;
 
+    use rstest::*;
     use serde_json::json;
 
     use super::*;
 
-    #[test]
-    fn test_fit_symbol_to_req() {
-        let binance = Binance::new();
-        assert_eq!(
-            binance.fit_symbol_to_req("ETH/BNB").unwrap(),
-            "ETHBNB".to_string()
-        )
-    }
-
-    #[test]
+    #[rstest]
+    #[case("ETH/BNB", "ETHBNB".to_string())]
     #[should_panic]
-    fn test_fit_symbol_to_req_panic() {
+    #[case("ETHBNB", "panic".to_string())]
+    fn test_fit_symbol_to_req(#[case] input: &str, #[case] expected: String) {
         let binance = Binance::new();
-        binance.fit_symbol_to_req("ETHBNB").unwrap();
+        assert_eq!(binance.fit_symbol_to_req(input).unwrap(), expected)
     }
 
     #[test]

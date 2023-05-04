@@ -96,50 +96,21 @@ pub enum ParseDurationAndUnitError {
 
 #[cfg(test)]
 mod tests {
+    use rstest::*;
+
     use super::*;
 
-    #[test]
-    fn test_to_msec() {
-        let sec_1 = DurationAndUnit::from_str("1sec").unwrap();
-        let min_1 = DurationAndUnit::from_str("1min").unwrap();
-        let min_15 = DurationAndUnit::from_str("15min").unwrap();
-        let min_30 = DurationAndUnit::from_str("30min").unwrap();
-        let hour_1 = DurationAndUnit::from_str("1hour").unwrap();
-        let hour_6 = DurationAndUnit::from_str("6hour").unwrap();
-        let day_1 = DurationAndUnit::from_str("1day").unwrap();
-        let week_1 = DurationAndUnit::from_str("1week").unwrap();
-        let month_1 = DurationAndUnit::from_str("1month").unwrap();
-
-        let expceted_1 = 1000;
-        let expceted_2 = 60000;
-        let expceted_3 = 900000;
-        let expceted_4 = 1800000;
-        let expceted_5 = 3600000;
-        let expceted_6 = 21600000;
-        let expceted_7 = 86400000;
-        let expceted_8 = 604800000;
-        let expceted_9 = 18144000000;
-
-        let test_cases = [
-            (sec_1, expceted_1),
-            (min_1, expceted_2),
-            (min_15, expceted_3),
-            (min_30, expceted_4),
-            (hour_1, expceted_5),
-            (hour_6, expceted_6),
-            (day_1, expceted_7),
-            (week_1, expceted_8),
-            (month_1, expceted_9),
-        ];
-
-        for (i, (duration, expected)) in test_cases.iter().enumerate() {
-            let result = duration.to_msec();
-            assert_eq!(
-                &result,
-                expected,
-                "\n\nFailed the test case: No.{:?}\n",
-                i + 1,
-            );
-        }
+    #[rstest]
+    #[case(DurationAndUnit::from_str("1sec").unwrap(), 1000)]
+    #[case(DurationAndUnit::from_str("1min").unwrap(), 60000)]
+    #[case(DurationAndUnit::from_str("15min").unwrap(), 900000)]
+    #[case(DurationAndUnit::from_str("30min").unwrap(), 1800000)]
+    #[case(DurationAndUnit::from_str("1hour").unwrap(), 3600000)]
+    #[case(DurationAndUnit::from_str("6hour").unwrap(), 21600000)]
+    #[case(DurationAndUnit::from_str("1day").unwrap(), 86400000)]
+    #[case(DurationAndUnit::from_str("1week").unwrap(), 604800000)]
+    #[case(DurationAndUnit::from_str("1month").unwrap(), 18144000000)]
+    fn test_to_msec(#[case] input: DurationAndUnit, #[case] expected: i64) {
+        assert_eq!(input.to_msec(), expected);
     }
 }
