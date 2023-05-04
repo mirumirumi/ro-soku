@@ -19,7 +19,7 @@ impl Bitbank {
 
 impl Retrieve for Bitbank {
     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
-        // No test is written
+        // No test written
 
         let unit = format!("{:?}", interval.1);
         Ok(format!("{}{}", interval.0, unit.to_lowercase()))

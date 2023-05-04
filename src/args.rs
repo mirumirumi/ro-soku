@@ -276,7 +276,6 @@ impl TryFrom<Cli> for ParsedArgs {
             ExchangeChoices::Bybit => Self::new(value, Exchange::Bybit(Bybit::new())),
             ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
             // ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
-            _ => unimplemented!(),
         }
     }
 }

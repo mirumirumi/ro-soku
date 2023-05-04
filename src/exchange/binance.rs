@@ -28,7 +28,7 @@ impl Binance {
 
     #[allow(dead_code)]
     fn load_balancing(&self) -> Self {
-        // No test is written
+        // No test written
 
         let mut rng = rand::thread_rng();
         let random_number = rng.gen_range(0..5);
@@ -144,7 +144,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_as_kline_binance() {
+    fn test_parse_as_kline() {
         let binance = Binance::new();
 
         let num1: i64 = 1619563200000;

@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_as_kline_bybit() {
+    fn test_parse_as_kline() {
         let bybit = Bybit::new();
 
         let input = r#"
