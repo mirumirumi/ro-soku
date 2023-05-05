@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 use anyhow::{anyhow, ensure, Error};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Utc};
 use clap::{ArgAction, Parser, Subcommand};
 use regex::Regex;
 
