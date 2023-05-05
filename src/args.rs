@@ -247,7 +247,7 @@ impl ParsedArgs {
     /// After this method is executed, `past` and `range` are no longer needed at all.
     fn fit_to_term_args(self) -> Self {
         let start_time;
-        let end_time;
+        let mut end_time;
 
         if self.past {
             let now = Utc::now();
@@ -256,6 +256,12 @@ impl ParsedArgs {
         } else {
             start_time = self.term_start.unwrap();
             end_time = self.term_end.unwrap();
+        }
+
+        // If `end_time` is far in the future, fix the current time as the maximum value
+        let now = Utc::now().timestamp_millis();
+        if now <= end_time {
+            end_time = now;
         }
 
         ParsedArgs {
@@ -386,6 +392,30 @@ mod tests {
 
         let expected_start_time = 946684800000;
         let expected_end_time = 946771200000;
+
+        assert_eq!(args.term_start.unwrap(), expected_start_time);
+        assert_eq!(args.term_end.unwrap(), expected_end_time);
+    }
+
+    #[test]
+    fn test_fit_to_term_args_end_now() {
+        let args = ParsedArgs {
+            exchange: Exchange::Binance(Binance::new()),
+            symbol: String::new(),
+            past: false,
+            range: None,
+            term_start: Some(946684800000),
+            term_end: Some(9000000000000000000),
+            interval: DurationAndUnit(1, TermUnit::Min),
+            pick: vec![],
+            order: Order::Asc,
+            output: FormatType::Json,
+        };
+
+        let args = args.fit_to_term_args();
+
+        let expected_start_time = 946684800000;
+        let expected_end_time = Utc::now().timestamp_millis();
 
         assert_eq!(args.term_start.unwrap(), expected_start_time);
         assert_eq!(args.term_end.unwrap(), expected_end_time);
