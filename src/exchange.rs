@@ -5,19 +5,19 @@ use clap::ValueEnum;
 use reqwest::blocking::Client;
 
 pub mod binance;
+pub mod bitbank;
 pub mod bybit;
-pub mod kraken;
 pub mod okx;
-// pub mod bitbank;
+// pub mod kraken;
 
 use crate::{
     args::*,
     exchange::{
         binance::*,
+        bitbank::*,
         bybit::*,
         // kraken::*,
         okx::*,
-        // bitbank::*
     },
     order::*,
     pick::*,
@@ -28,25 +28,26 @@ use crate::{
 #[derive(Debug, Clone, ValueEnum)]
 pub enum ExchangeChoices {
     Binance,
+    Bitbank,
     Bybit,
     Okx,
     // Kraken,
-    // Bitbank,
 }
 
 #[derive(Debug, Clone)]
 pub enum Exchange {
     Binance(Binance),
+    Bitbank(Bitbank),
     Bybit(Bybit),
     Okx(Okx),
     // Kraken(Kraken),
-    // Bitbank,
 }
 
 impl Exchange {
     pub fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
+            Exchange::Bitbank(bitbank) => bitbank.retrieve(args),
             Exchange::Bybit(bybit) => bybit.retrieve(args),
             Exchange::Okx(okx) => okx.retrieve(args),
             // Exchange::Kraken(kraken) => kraken.retrieve(args),
@@ -58,13 +59,20 @@ pub trait Retrieve: Debug {
     fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         let mut result: Vec<Kline> = Vec::new();
         let mut should_continue = true;
+        let client = reqwest::blocking::Client::new();
 
         while should_continue {
-            let client = reqwest::blocking::Client::new();
-
+            println!("\nfetch!!!!!!!!\n");
             let res = self.fetch(args, &client)?;
             let klines = self.parse_as_kline(res);
             let klines_asc = Order::sort_kline_asc(klines);
+
+            // Most exchanges do nothing
+            let klines_asc = Self::remove_unnecessary_raws(
+                klines_asc,
+                args.term_start.unwrap(),
+                args.term_end.unwrap(),
+            );
 
             match klines_asc.last() {
                 Some(latest) => {
@@ -90,10 +98,16 @@ pub trait Retrieve: Debug {
 
     fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
 
-    // Some exchange intervals may be invalid
+    // Some exchange intervals may be invalid (reason using `Result`)
     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error>;
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline>;
+
+    /// Use on exchanges where data must be parsed as `Kline` and then organized before the next fetch.
+    #[allow(unused_variables)]
+    fn remove_unnecessary_raws(raws: Vec<Kline>, term_start: i64, term_end: i64) -> Vec<Kline> {
+        raws
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]

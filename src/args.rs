@@ -8,10 +8,10 @@ use regex::Regex;
 use crate::{
     exchange::{
         binance::*,
+        bitbank::*,
         bybit::*,
         // kraken::*,
         okx::*,
-        // bitbank::*
         *,
     },
     format::*,
@@ -273,6 +273,7 @@ impl TryFrom<Cli> for ParsedArgs {
     fn try_from(value: Cli) -> Result<Self, Self::Error> {
         match value.exchange {
             ExchangeChoices::Binance => Self::new(value, Exchange::Binance(Binance::new())),
+            ExchangeChoices::Bitbank => Self::new(value, Exchange::Bitbank(Bitbank::new())),
             ExchangeChoices::Bybit => Self::new(value, Exchange::Bybit(Bybit::new())),
             ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
             // ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
