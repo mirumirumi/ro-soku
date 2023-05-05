@@ -29,7 +29,11 @@ fn main() -> Result<(), anyhow::Error> {
             let data = Order::sort(data, &args.order);
             let data = args.output.format(&data);
 
-            println!("{}", data);
+            if data.is_empty() {
+                println!("No data");
+            } else {
+                println!("{}", data);
+            }
         }
     }
 
