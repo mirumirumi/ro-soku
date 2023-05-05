@@ -85,6 +85,10 @@ impl Cli {
             errors.push(format!("  - {e}"));
         }
 
+        if let Err(e) = self.check_symbol_case() {
+            errors.push(format!("  - {e}"));
+        }
+
         if !errors.is_empty() {
             errors.push(format!(
                 "Failed to parse arguments due to {} error(s)",
@@ -158,6 +162,14 @@ impl Cli {
             );
         }
 
+        Ok(())
+    }
+
+    fn check_symbol_case(&self) -> Result<(), Error> {
+        ensure!(
+            self.symbol.chars().all(|c| c.is_uppercase() || c == '/'),
+            "Symbol pair must be in uppercase."
+        );
         Ok(())
     }
 }
