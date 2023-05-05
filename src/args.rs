@@ -1,7 +1,7 @@
 use std::{fmt::Debug, str::FromStr};
 
 use anyhow::{anyhow, ensure, Error};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use clap::{ArgAction, Parser, Subcommand};
 use regex::Regex;
 
@@ -42,11 +42,11 @@ pub struct Cli {
     #[arg(long)]
     pub range: Option<String>,
 
-    /// Start of data period, you can use unixtime or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-end` is required)
+    /// Start of data period, you can use unixtime (millisecond) or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-end` is required)
     #[arg(long)]
     pub term_start: Option<String>,
 
-    /// End of data period, you can use unixtime or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-start` is required)
+    /// End of data period, you can use unixtime (millisecond) or RFC3339 timestamp (cannot be used with `--past` and `--range`, `--term-start` is required)
     #[arg(long)]
     pub term_end: Option<String>,
 
@@ -77,7 +77,7 @@ impl Cli {
     pub fn valdate(&self) -> Result<(), Error> {
         let mut errors: Vec<String> = Vec::new();
 
-        if let Err(e) = self.check_exists_command_set() {
+        if let Err(e) = self.exists_command_set() {
             errors.push(format!("  - {e}"));
         }
 
@@ -101,7 +101,7 @@ impl Cli {
         Ok(())
     }
 
-    fn check_exists_command_set(&self) -> Result<(), Error> {
+    fn exists_command_set(&self) -> Result<(), Error> {
         if self.past.unwrap() {
             ensure!(
                 self.range.is_some(),
@@ -241,20 +241,6 @@ impl ParsedArgs {
         }
     }
 
-    /// Check that the `term_start`/`term_end` are the correct relation in terms of time.
-    /// At first glance, `.is_some()` may seem unnecessary, since this method is required regardless of
-    /// whether `--past` is used or not, but since the original input itself is Optional, it must be done this way.
-    fn check_term_relations(&self) -> Result<(), Error> {
-        if self.term_start.is_some() && self.term_end.is_some() {
-            ensure!(
-                self.term_start <= self.term_end,
-                "The `--term-start` time must be earlier than the `--term-end` time."
-            )
-        };
-
-        Ok(())
-    }
-
     /// Create a new `ParsedArgs` structure with the corresponding `term_start` and `term_end`
     /// fields for the `--past` and non-past` cases, respectively.
     /// After this method is executed, `past` and `range` are no longer needed at all.
@@ -276,6 +262,20 @@ impl ParsedArgs {
             term_end: Some(end_time),
             ..self
         }
+    }
+
+    /// Check that the `term_start`/`term_end` are the correct relation in terms of time.
+    /// At first glance, `.is_some()` may seem unnecessary, since this method is required regardless of
+    /// whether `--past` is used or not, but since the original input itself is Optional, it must be done this way.
+    fn check_term_relations(&self) -> Result<(), Error> {
+        if self.term_start.is_some() && self.term_end.is_some() {
+            ensure!(
+                self.term_start <= self.term_end,
+                "The `--term-start` time must be earlier than the `--term-end` time."
+            )
+        };
+
+        Ok(())
     }
 }
 
