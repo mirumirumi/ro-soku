@@ -6,6 +6,7 @@ use reqwest::blocking::Client;
 
 pub mod binance;
 pub mod bitbank;
+pub mod bitmex;
 pub mod bybit;
 pub mod okx;
 // pub mod kraken;
@@ -15,6 +16,7 @@ use crate::{
     exchange::{
         binance::*,
         bitbank::*,
+        bitmex::*,
         bybit::*,
         // kraken::*,
         okx::*,
@@ -29,6 +31,7 @@ use crate::{
 pub enum ExchangeChoices {
     Binance,
     Bitbank,
+    Bitmex,
     Bybit,
     Okx,
     // Kraken,
@@ -38,6 +41,7 @@ pub enum ExchangeChoices {
 pub enum Exchange {
     Binance(Binance),
     Bitbank(Bitbank),
+    Bitmex(Bitmex),
     Bybit(Bybit),
     Okx(Okx),
     // Kraken(Kraken),
@@ -48,6 +52,7 @@ impl Exchange {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
             Exchange::Bitbank(bitbank) => bitbank.retrieve(args),
+            Exchange::Bitmex(bitmex) => bitmex.retrieve(args),
             Exchange::Bybit(bybit) => bybit.retrieve(args),
             Exchange::Okx(okx) => okx.retrieve(args),
             // Exchange::Kraken(kraken) => kraken.retrieve(args),

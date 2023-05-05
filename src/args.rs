@@ -9,6 +9,7 @@ use crate::{
     exchange::{
         binance::*,
         bitbank::*,
+        bitmex::*,
         bybit::*,
         // kraken::*,
         okx::*,
@@ -286,6 +287,7 @@ impl TryFrom<Cli> for ParsedArgs {
         match value.exchange {
             ExchangeChoices::Binance => Self::new(value, Exchange::Binance(Binance::new())),
             ExchangeChoices::Bitbank => Self::new(value, Exchange::Bitbank(Bitbank::new())),
+            ExchangeChoices::Bitmex => Self::new(value, Exchange::Bitmex(Bitmex::new())),
             ExchangeChoices::Bybit => Self::new(value, Exchange::Bybit(Bybit::new())),
             ExchangeChoices::Okx => Self::new(value, Exchange::Okx(Okx::new())),
             // ExchangeChoices::Kraken => Self::new(value, Exchange::Kraken(Kraken::new())),
