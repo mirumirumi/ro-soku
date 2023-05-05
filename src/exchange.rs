@@ -103,7 +103,7 @@ pub trait Retrieve: Debug {
 
     fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
 
-    // Some exchange intervals may be invalid (reason using `Result`)
+    // Some exchange intervals may be invalid (why using `Result`)
     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error>;
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline>;

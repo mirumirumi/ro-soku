@@ -2,7 +2,7 @@ use std::{fmt::Debug, str::FromStr};
 
 use anyhow::{anyhow, ensure, Error};
 use chrono::{DateTime, Utc};
-use clap::{ArgAction, Parser, Subcommand};
+use clap::{ArgAction, Parser, Subcommand, ValueEnum};
 use regex::Regex;
 
 use crate::{
@@ -34,6 +34,10 @@ pub struct Cli {
     /// Symbol pair with slashes (if you enter the format like BTC/USDT, ro-soku will automatically convert it for the respective exchanges)
     #[arg(short = 's', long, default_value = "BTC/USDT")]
     pub symbol: String,
+
+    /// Market type (this perpetual refers to the "never-expiring derivative" commonly used by most exchanges)
+    #[arg(short = 't', long = "type", default_value = "spot")]
+    pub type_: MarketType,
 
     /// Specify if you want the latest data for the past range (cannot be used with `--term-start`, `--term-end`)
     #[arg(long, action = ArgAction::SetTrue)]
@@ -181,10 +185,17 @@ pub enum Commands {
     Guide {},
 }
 
+#[derive(Debug, Clone, ValueEnum)]
+pub enum MarketType {
+    Spot,
+    Perpetual,
+}
+
 #[derive(Debug, Clone)]
 pub struct ParsedArgs {
     pub exchange: Exchange,
     pub symbol: String,
+    pub type_: MarketType,
     pub past: bool,
     pub range: Option<DurationAndUnit>,
     pub term_start: Option<i64>,
@@ -200,6 +211,7 @@ impl ParsedArgs {
         let parsed_args = ParsedArgs {
             exchange,
             symbol: value.symbol,
+            type_: value.type_,
             past: value.past.unwrap_or(false),
             range: match value.range {
                 Some(range) => Some(range.parse::<DurationAndUnit>()?),
@@ -332,6 +344,7 @@ mod tests {
         let args = ParsedArgs {
             exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
+            type_: MarketType::Spot,
             past: false,
             range: None,
             term_start,
@@ -350,6 +363,7 @@ mod tests {
         let args = ParsedArgs {
             exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
+            type_: MarketType::Spot,
             past: true,
             range: Some(DurationAndUnit(1, TermUnit::Day)),
             term_start: None,
@@ -378,6 +392,7 @@ mod tests {
         let args = ParsedArgs {
             exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
+            type_: MarketType::Spot,
             past: false,
             range: None,
             term_start: Some(946684800000),
@@ -402,6 +417,7 @@ mod tests {
         let args = ParsedArgs {
             exchange: Exchange::Binance(Binance::new()),
             symbol: String::new(),
+            type_: MarketType::Spot,
             past: false,
             range: None,
             term_start: Some(946684800000),

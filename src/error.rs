@@ -12,9 +12,11 @@ impl ExchangeResponseError {
     }
 
     pub fn too_many_requests() -> Error {
-        anyhow!(
-            "Too many requests were rejected by the exchange's server. Let's have some coffee ☕."
-        )
+        anyhow!("Request denied due to exceeding rate limit. Let's have some coffee ☕.")
+    }
+
+    pub fn no_support_type() -> Error {
+        anyhow!("This exchange does not support the market type.")
     }
 
     pub fn wrap_error(err: String) -> Error {

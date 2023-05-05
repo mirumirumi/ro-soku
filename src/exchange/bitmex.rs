@@ -45,6 +45,10 @@ impl Bitmex {
 
 impl Retrieve for Bitmex {
     fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
+        if let MarketType::Spot = args.type_ {
+            return Err(ExchangeResponseError::no_support_type());
+        }
+
         let params = &[
             ("binSize", self.fit_interval_to_req(&args.interval)?),
             ("symbol", self.fit_symbol_to_req(&args.symbol)?),

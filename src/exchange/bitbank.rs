@@ -65,6 +65,10 @@ impl Bitbank {
 
 impl Retrieve for Bitbank {
     fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
+        if let MarketType::Perpetual = args.type_ {
+            return Err(ExchangeResponseError::no_support_type());
+        }
+
         let interval = self.fit_interval_to_req(&args.interval)?;
         let endpoint = self.make_url(
             self.fit_symbol_to_req(&args.symbol)?,

@@ -21,7 +21,7 @@ struct Response {
 impl Okx {
     pub fn new() -> Self {
         Okx {
-            endpoint: "https://www.okx.com/api/v5/market/candles".to_string(),
+            endpoint: "https://www.okx.com/api/v5/market/history-candles".to_string(),
             limit: 300,
         }
     }
@@ -30,7 +30,15 @@ impl Okx {
 impl Retrieve for Okx {
     fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
         let params = &[
-            ("instId", self.fit_symbol_to_req(&args.symbol)?),
+            (
+                "instId",
+                match args.type_ {
+                    MarketType::Spot => self.fit_symbol_to_req(&args.symbol)?,
+                    MarketType::Perpetual => {
+                        format!("{}-SWAP", self.fit_symbol_to_req(&args.symbol)?)
+                    }
+                },
+            ),
             ("bar", self.fit_interval_to_req(&args.interval)?),
             ("before", (args.term_start.unwrap() - 1).to_string()), // Opposite of the word meaning
             ("after", (args.term_end.unwrap() + 1).to_string()),    // Same as above

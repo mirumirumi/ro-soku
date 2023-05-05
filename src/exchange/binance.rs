@@ -8,8 +8,10 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Binance {
-    endpoint: String,
-    limit: i32,
+    endpoint_spot: String,
+    endpoint_perpetual: String,
+    limit_spot: i32,
+    limit_perpetual: i32,
 }
 
 #[derive(Deserialize)]
@@ -21,8 +23,10 @@ struct ResponseOnError {
 impl Binance {
     pub fn new() -> Self {
         Binance {
-            endpoint: "https://data.binance.com/api/v3/klines".to_string(),
-            limit: 1000,
+            endpoint_spot: "https://data.binance.com/api/v3/klines".to_string(),
+            endpoint_perpetual: "https://fapi.binance.com/fapi/v1/klines".to_string(),
+            limit_spot: 1000,
+            limit_perpetual: 1500,
         }
     }
 
@@ -36,17 +40,17 @@ impl Binance {
         let endpoint = match random_number {
             0 => {
                 // This means we can use `https://api.binance.com` as is
-                self.endpoint.clone()
+                self.endpoint_spot.clone()
             }
             num => {
                 let re = Regex::new(r"https://api\.binance").unwrap();
-                re.replace(&self.endpoint, format!("https://api{}.binance", num))
+                re.replace(&self.endpoint_spot, format!("https://api{}.binance", num))
                     .to_string()
             }
         };
 
         Binance {
-            endpoint,
+            endpoint_spot: endpoint,
             ..self.clone()
         }
     }
@@ -59,10 +63,23 @@ impl Retrieve for Binance {
             ("interval", self.fit_interval_to_req(&args.interval)?),
             ("startTime", args.term_start.unwrap().to_string()),
             ("endTime", args.term_end.unwrap().to_string()),
-            ("limit", self.limit.to_string()),
+            (
+                "limit",
+                match args.type_ {
+                    MarketType::Spot => self.limit_spot.to_string(),
+                    MarketType::Perpetual => self.limit_perpetual.to_string(),
+                },
+            ),
         ];
 
-        let res = client.get(&self.endpoint).query(params).send()?.text()?;
+        let res = client
+            .get(match args.type_ {
+                MarketType::Spot => &self.endpoint_spot,
+                MarketType::Perpetual => &self.endpoint_perpetual,
+            })
+            .query(params)
+            .send()?
+            .text()?;
 
         if let Ok(response) = serde_json::from_str::<ResponseOnError>(&res) {
             match response.code {

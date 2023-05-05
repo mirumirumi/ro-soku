@@ -8,16 +8,8 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 #[derive(Debug, Clone)]
 pub struct Bybit {
     endpoint: String,
-    // category: Option<Category>,
     limit: i32,
 }
-
-// #[derive(Debug, Clone)]
-// enum Category {
-//     Spot,
-//     Linear,
-//     Inverse, // Not used
-// }
 
 #[derive(Deserialize)]
 struct Response {
@@ -29,7 +21,7 @@ struct Response {
 }
 
 #[derive(Deserialize)]
-// In case of error, to be empty `{}` (reason all fields are optional)
+// In case of error, to be empty `{}` (why all fields are optional)
 struct ResultInResponse {
     #[allow(dead_code)]
     category: Option<String>,
@@ -42,7 +34,6 @@ impl Bybit {
     pub fn new() -> Self {
         Bybit {
             endpoint: "https://api.bybit.com/v5/market/kline".to_string(),
-            // category: None,
             limit: 200,
         }
     }
@@ -51,7 +42,13 @@ impl Bybit {
 impl Retrieve for Bybit {
     fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
         let params = &[
-            ("category", "spot".to_string()),
+            (
+                "category",
+                match args.type_ {
+                    MarketType::Spot => "spot".to_string(),
+                    MarketType::Perpetual => "linear".to_string(),
+                },
+            ),
             ("symbol", self.fit_symbol_to_req(&args.symbol)?),
             ("interval", self.fit_interval_to_req(&args.interval)?),
             ("start", args.term_start.unwrap().to_string()),
