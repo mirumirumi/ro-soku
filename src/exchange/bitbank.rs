@@ -1,3 +1,5 @@
+use std::{collections::HashMap, fs::File, io::Read};
+
 use anyhow::{anyhow, Error};
 use chrono::{Datelike, TimeZone, Utc};
 use regex::Regex;
@@ -82,6 +84,8 @@ impl Retrieve for Bitbank {
             .expect("Unexpected error! Failed to parse response (for error code) to json.");
         if let Some(code) = response.data.code {
             match code {
+                // If the validation of `interval` is complete, then the cause of the error
+                // can be identified as a symbol only (multiple errors are contained in `10000`)
                 10000 => return Err(ExchangeResponseError::symbol()),
                 10009 => return Err(ExchangeResponseError::too_many_requests()),
                 _ => return Err(ExchangeResponseError::unknown()),
@@ -106,10 +110,25 @@ impl Retrieve for Bitbank {
     }
 
     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
-        // Almost same code as othre exchanges, so the test is skipped
+        let mut file = File::open("data/intervals.json").unwrap();
+        let mut data = String::new();
+        file.read_to_string(&mut data).unwrap();
+
+        let intervals_map: HashMap<String, HashMap<String, Vec<String>>> =
+            serde_json::from_str(&data)?;
+        let intervals = intervals_map
+            .get("bitbank")
+            .and_then(|market_type_map| market_type_map.get("Spot"))
+            .unwrap();
 
         let unit = format!("{:?}", interval.1);
-        Ok(format!("{}{}", interval.0, unit.to_lowercase()))
+        let result = format!("{}{}", interval.0, unit.to_lowercase());
+
+        if !intervals.iter().any(|s| *s == result) {
+            return Err(ExchangeResponseError::interval());
+        }
+
+        Ok(result)
     }
 
     fn parse_as_kline(&self, data: String) -> Vec<Kline> {
@@ -154,6 +173,8 @@ impl Retrieve for Bitbank {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use rstest::*;
 
     use super::*;
@@ -167,6 +188,23 @@ mod tests {
         #[case] expected: String,
     ) {
         assert_eq!(Bitbank::calculate_date(term_start, interval), expected)
+    }
+
+    #[test]
+    fn test_fit_interval_to_req_ok() {
+        let bitbank = Bitbank::new();
+        let duration_and_unit = DurationAndUnit::from_str("15min").unwrap();
+        assert_eq!(
+            bitbank.fit_interval_to_req(&duration_and_unit).unwrap(),
+            "15min".to_string()
+        );
+    }
+
+    #[test]
+    fn test_fit_interval_to_req_err() {
+        let bitbank = Bitbank::new();
+        let duration_and_unit = DurationAndUnit::from_str("3month").unwrap();
+        assert!(bitbank.fit_interval_to_req(&duration_and_unit).is_err());
     }
 
     #[test]
