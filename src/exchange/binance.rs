@@ -106,7 +106,10 @@ impl Retrieve for Binance {
         Ok(format!(
             "{}{}",
             interval.0,
-            unit.to_lowercase().chars().next().unwrap()
+            match interval.1 {
+                TermUnit::Month => 'M',
+                _ => unit.to_lowercase().chars().next().unwrap(),
+            }
         ))
     }
 
@@ -144,13 +147,15 @@ mod tests {
         assert_eq!(binance.fit_symbol_to_req(input).unwrap(), expected)
     }
 
-    #[test]
-    fn test_fit_interval_to_req() {
+    #[rstest]
+    #[case("15min", "15m".to_string())]
+    #[case("1month", "1M".to_string())]
+    fn test_fit_interval_to_req(#[case] input: &str, #[case] expected: String) {
         let binance = Binance::new();
-        let duration_and_unit = DurationAndUnit::from_str("15min").unwrap();
+        let duration_and_unit = DurationAndUnit::from_str(input).unwrap();
         assert_eq!(
             binance.fit_interval_to_req(&duration_and_unit).unwrap(),
-            "15m".to_string()
+            expected
         );
     }
 
