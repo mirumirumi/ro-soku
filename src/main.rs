@@ -1,17 +1,19 @@
 use std::time;
 
 use clap::Parser;
+use dialoguer::Confirm;
 
 mod args;
 mod error;
 mod exchange;
 mod format;
+mod guide;
 mod order;
 mod pick;
 mod types;
 mod unit;
 
-use crate::{args::*, order::Order};
+use crate::{args::*, guide::*, order::Order};
 
 fn main() -> Result<(), anyhow::Error> {
     let timer = time::Instant::now();
@@ -19,7 +21,18 @@ fn main() -> Result<(), anyhow::Error> {
 
 
     match &args.command {
-        Some(Commands::Guide {}) => {}
+        Some(Commands::Guide {}) => {
+            let mut guide = Guide::new();
+            let command = guide.generate()?;
+
+            if Confirm::new()
+                .with_prompt("Do you want to run this command now?")
+                .wait_for_newline(true)
+                .interact()?
+            {
+                ()
+            }
+        }
         _ => {
             args.valdate()?;
 
@@ -34,11 +47,12 @@ fn main() -> Result<(), anyhow::Error> {
             } else {
                 println!("{}", data);
             }
+
+            if cfg!(debug_assertions) {
+                println!("{:?}", timer.elapsed());
+            }
         }
     }
 
-    if cfg!(debug_assertions) {
-        println!("{:?}", timer.elapsed());
-    }
     Ok(())
 }

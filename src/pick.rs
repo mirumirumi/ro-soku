@@ -2,14 +2,31 @@ use clap::ValueEnum;
 
 use crate::{exchange::*, types::*};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, ValueEnum)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    ValueEnum,
+    strum::Display,
+    strum::IntoStaticStr,
+    strum::EnumIter,
+    strum::AsRefStr,
+)]
 // Allow multiple
 pub enum Pick {
+    #[strum(serialize = "Timestamp")]
     T, /* ime as unixtime */
+    #[strum(serialize = "Open price")]
     O,
+    #[strum(serialize = "High price")]
     H,
+    #[strum(serialize = "Low price")]
     L,
+    #[strum(serialize = "Close price")]
     C,
+    #[strum(serialize = "Volume")]
     V,
 }
 

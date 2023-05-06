@@ -2,11 +2,17 @@ use clap::ValueEnum;
 
 use crate::{pick::*, types::*};
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(
+    Debug, Clone, ValueEnum, strum::Display, strum::IntoStaticStr, strum::EnumIter, strum::AsRefStr,
+)]
 pub enum FormatType {
+    #[strum(serialize = "raw")]
     Raw,
+    #[strum(serialize = "CSV")]
     Csv,
+    #[strum(serialize = "TSV")]
     Tsv,
+    #[strum(serialize = "JSON")]
     Json,
 }
 

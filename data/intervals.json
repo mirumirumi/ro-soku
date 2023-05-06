@@ -1,0 +1,100 @@
+{
+    "Binance": {
+        "Spot": [
+            "1sec",
+            "1min",
+            "3min",
+            "5min",
+            "15min",
+            "30min",
+            "1hour",
+            "2hour",
+            "4hour",
+            "6hour",
+            "8hour",
+            "12hour",
+            "1day",
+            "3day",
+            "1week",
+            "1month"
+        ],
+        "Perpetual": [
+            "1min",
+            "3min",
+            "5min",
+            "15min",
+            "30min",
+            "1hour",
+            "2hour",
+            "4hour",
+            "6hour",
+            "8hour",
+            "12hour",
+            "1day",
+            "3day",
+            "1week",
+            "1month"
+        ]
+    },
+    "bitbank": {
+        "Spot": [
+            "1min",
+            "3min",
+            "5min",
+            "15min",
+            "30min",
+            "1hour",
+            "2hour",
+            "4hour",
+            "6hour",
+            "12hour",
+            "1day",
+            "1week",
+            "1month"
+        ]
+    },
+    "BitMEX": {
+        "Perpetual": [
+            "1min",
+            "5min",
+            "1hour",
+            "1day"
+        ]
+    },
+    "Bybit": {
+        "Spot": [
+            "1min",
+            "5min",
+            "1hour",
+            "1day"
+        ],
+        "Perpetual": [
+            "1min",
+            "5min",
+            "1hour",
+            "1day"
+        ]
+    },
+    "OKX": {
+        "Spot": [
+            "1min",
+            "3min",
+            "5min",
+            "15min",
+            "30min",
+            "1hour",
+            "2hour",
+            "4hour"
+        ],
+        "Perpetual": [
+            "1min",
+            "3min",
+            "5min",
+            "15min",
+            "30min",
+            "1hour",
+            "2hour",
+            "4hour"
+        ]
+    }
+}

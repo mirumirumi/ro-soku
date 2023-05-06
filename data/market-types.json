@@ -1,0 +1,20 @@
+{
+    "Binance": [
+        "Spot",
+        "Perpetual"
+    ],
+    "bitbank": [
+        "Spot"
+    ],
+    "BitMEX": [
+        "Perpetual"
+    ],
+    "Bybit": [
+        "Spot",
+        "Perpetual"
+    ],
+    "OKX": [
+        "Spot",
+        "Perpetual"
+    ]
+}

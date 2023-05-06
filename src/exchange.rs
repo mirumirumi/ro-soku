@@ -27,12 +27,17 @@ use crate::{
     unit::*,
 };
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(
+    Debug, Clone, ValueEnum, strum::Display, strum::IntoStaticStr, strum::EnumIter, strum::AsRefStr,
+)]
 pub enum ExchangeChoices {
     Binance,
+    #[strum(serialize = "bitbank")]
     Bitbank,
+    #[strum(serialize = "BitMEX")]
     Bitmex,
     Bybit,
+    #[strum(serialize = "OKX")]
     Okx,
     // Kraken,
 }

@@ -4,7 +4,9 @@ use clap::ValueEnum;
 
 use crate::{exchange::*, types::*};
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(
+    Debug, Clone, ValueEnum, strum::Display, strum::IntoStaticStr, strum::EnumIter, strum::AsRefStr,
+)]
 pub enum Order {
     Asc,
     Desc,

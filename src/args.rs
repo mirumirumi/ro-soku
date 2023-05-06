@@ -90,7 +90,7 @@ impl Cli {
             errors.push(format!("  - {e}"));
         }
 
-        if let Err(e) = self.check_symbol_case() {
+        if let Err(e) = self.check_symbol_format() {
             errors.push(format!("  - {e}"));
         }
 
@@ -170,10 +170,10 @@ impl Cli {
         Ok(())
     }
 
-    fn check_symbol_case(&self) -> Result<(), Error> {
+    fn check_symbol_format(&self) -> Result<(), Error> {
         ensure!(
-            self.symbol.chars().all(|c| c.is_uppercase() || c == '/'),
-            "Symbol pair must be in uppercase."
+            self.symbol.chars().all(|c| c.is_uppercase() || c == '/') && self.symbol.contains('/'),
+            "Symbol pair must be in uppercase and contain `/`."
         );
         Ok(())
     }
@@ -185,7 +185,9 @@ pub enum Commands {
     Guide {},
 }
 
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(
+    Debug, Clone, ValueEnum, strum::Display, strum::IntoStaticStr, strum::EnumIter, strum::AsRefStr,
+)]
 pub enum MarketType {
     Spot,
     Perpetual,
