@@ -53,18 +53,7 @@ pub enum Exchange {
 }
 
 impl Exchange {
-    pub fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
-        match self {
-            Exchange::Binance(binance) => binance.prepare(args),
-            Exchange::Bitbank(bitbank) => bitbank.prepare(args),
-            Exchange::Bitmex(bitmex) => bitmex.prepare(args),
-            Exchange::Bybit(bybit) => bybit.prepare(args),
-            Exchange::Okx(okx) => okx.prepare(args),
-            // Exchange::Kraken(kraken) => kraken.prepare(args),
-        }
-    }
-
-    pub fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+    pub fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
             Exchange::Bitbank(bitbank) => bitbank.retrieve(args),
@@ -79,12 +68,14 @@ impl Exchange {
 pub trait Retrieve: Debug {
     fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error>;
 
-    fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+    fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         let mut result: Vec<Kline> = Vec::new();
         let mut should_continue = true;
         let client = reqwest::blocking::Client::new();
 
         while should_continue {
+            self.prepare(&args.clone())?;
+
             let res = self.fetch(&client)?;
             let klines = self.parse_as_kline(res);
             let klines_asc = Order::sort_kline_asc(klines);

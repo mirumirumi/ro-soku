@@ -8,6 +8,8 @@ use serde::Deserialize;
 
 use crate::{args::*, error::*, exchange::*, unit::*};
 
+const ENDPOINT_FRAME: &str = "https://public.bitbank.cc/{pair}/candlestick/{candle_type}/{date}";
+
 #[derive(Debug, Clone)]
 pub struct Bitbank {
     market_type: MarketType,
@@ -38,8 +40,7 @@ impl Bitbank {
     pub fn new() -> Self {
         Bitbank {
             market_type: MarketType::Spot,
-            endpoint: "https://public.bitbank.cc/{pair}/candlestick/{candle_type}/{date}"
-                .to_string(),
+            endpoint: String::new(),
         }
     }
 
@@ -60,7 +61,7 @@ impl Bitbank {
     }
 
     fn make_url(&self, symbol: String, interval: &str, date: String) -> String {
-        self.endpoint
+        ENDPOINT_FRAME
             .replace("{pair}", &symbol)
             .replace("{candle_type}", interval)
             .replace("{date}", &date)
