@@ -11,6 +11,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 #[derive(Debug, Clone)]
 pub struct Bitmex {
     params: Vec<(String, String)>,
+    market_type: MarketType,
     endpoint: String,
     limit: i32,
 }
@@ -31,6 +32,7 @@ impl Bitmex {
     pub fn new() -> Self {
         Bitmex {
             params: Vec::new(),
+            market_type: MarketType::Perpetual,
             endpoint: "https://www.bitmex.com/api/v1/trade/bucketed".to_string(),
             limit: 1000,
         }
@@ -85,7 +87,10 @@ impl Retrieve for Bitmex {
 
         if let Ok(response) = serde_json::from_str::<ResponseOnError>(&res) {
             if response.error.message.contains("binSize") {
-                return Err(ExchangeResponseError::interval());
+                return Err(ExchangeResponseError::interval(
+                    &ExchangeChoices::Bitmex,
+                    &self.market_type,
+                ));
             } else {
                 return Err(ExchangeResponseError::wrap_error(response.error.message));
             }

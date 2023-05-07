@@ -8,6 +8,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 #[derive(Debug, Clone)]
 pub struct Okx {
     params: Vec<(String, String)>,
+    market_type: MarketType,
     endpoint: String,
     limit: i32,
 }
@@ -23,6 +24,7 @@ impl Okx {
     pub fn new() -> Self {
         Okx {
             params: Vec::new(),
+            market_type: MarketType::Spot,
             endpoint: "https://www.okx.com/api/v5/market/history-candles".to_string(),
             limit: 300,
         }
@@ -54,6 +56,11 @@ impl Retrieve for Okx {
         ]
         .to_vec();
 
+        match args.type_ {
+            MarketType::Spot => self.market_type = MarketType::Spot,
+            MarketType::Perpetual => self.market_type = MarketType::Perpetual,
+        };
+
         Ok(())
     }
 
@@ -71,7 +78,10 @@ impl Retrieve for Okx {
             "50011" => return Err(ExchangeResponseError::too_many_requests()),
             "51000" => {
                 if response.msg.contains("bar") {
-                    return Err(ExchangeResponseError::interval());
+                    return Err(ExchangeResponseError::interval(
+                        &ExchangeChoices::Okx,
+                        &self.market_type,
+                    ));
                 } else {
                     return Err(ExchangeResponseError::unknown());
                 }

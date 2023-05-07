@@ -8,6 +8,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 #[derive(Debug, Clone)]
 pub struct Bybit {
     params: Vec<(String, String)>,
+    market_type: MarketType,
     endpoint: String,
     limit: i32,
 }
@@ -35,6 +36,7 @@ impl Bybit {
     pub fn new() -> Self {
         Bybit {
             params: Vec::new(),
+            market_type: MarketType::Spot,
             endpoint: "https://api.bybit.com/v5/market/kline".to_string(),
             limit: 200,
         }
@@ -62,6 +64,11 @@ impl Retrieve for Bybit {
         ]
         .to_vec();
 
+        match args.type_ {
+            MarketType::Spot => self.market_type = MarketType::Spot,
+            MarketType::Perpetual => self.market_type = MarketType::Perpetual,
+        };
+
         Ok(())
     }
 
@@ -81,7 +88,12 @@ impl Retrieve for Bybit {
         {
             0 => (/* Succeeded! */),
             10001 => match response.ret_msg.as_str() {
-                "Invalid period!" => return Err(ExchangeResponseError::interval()),
+                "Invalid period!" => {
+                    return Err(ExchangeResponseError::interval(
+                        &ExchangeChoices::Bybit,
+                        &self.market_type,
+                    ))
+                }
                 "Not supported symbols" => return Err(ExchangeResponseError::symbol()),
                 _ => return Err(ExchangeResponseError::unknown()),
             },

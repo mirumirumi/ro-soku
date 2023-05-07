@@ -10,6 +10,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Bitbank {
+    market_type: MarketType,
     endpoint: String,
 }
 
@@ -36,6 +37,7 @@ struct Candlestick {
 impl Bitbank {
     pub fn new() -> Self {
         Bitbank {
+            market_type: MarketType::Spot,
             endpoint: "https://public.bitbank.cc/{pair}/candlestick/{candle_type}/{date}"
                 .to_string(),
         }
@@ -129,7 +131,10 @@ impl Retrieve for Bitbank {
         let result = format!("{}{}", interval.0, unit.to_lowercase());
 
         if !intervals.iter().any(|s| *s == result) {
-            return Err(ExchangeResponseError::interval());
+            return Err(ExchangeResponseError::interval(
+                &ExchangeChoices::Bitbank,
+                &self.market_type,
+            ));
         }
 
         Ok(result)

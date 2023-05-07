@@ -9,6 +9,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 #[derive(Debug, Clone)]
 pub struct Binance {
     params: Vec<(String, String)>,
+    market_type: MarketType,
     endpoint_to_fetch: String,
     endpoint_spot: String,
     endpoint_perpetual: String,
@@ -26,6 +27,7 @@ impl Binance {
     pub fn new() -> Self {
         Binance {
             params: Vec::new(),
+            market_type: MarketType::Spot,
             endpoint_to_fetch: String::new(),
             endpoint_spot: "https://data.binance.com/api/v3/klines".to_string(),
             endpoint_perpetual: "https://fapi.binance.com/fapi/v1/klines".to_string(),
@@ -84,8 +86,14 @@ impl Retrieve for Binance {
         .to_vec();
 
         match args.type_ {
-            MarketType::Spot => self.endpoint_to_fetch = self.endpoint_spot.to_owned(),
-            MarketType::Perpetual => self.endpoint_to_fetch = self.endpoint_perpetual.to_owned(),
+            MarketType::Spot => {
+                self.market_type = MarketType::Spot;
+                self.endpoint_to_fetch = self.endpoint_spot.to_owned()
+            }
+            MarketType::Perpetual => {
+                self.market_type = MarketType::Perpetual;
+                self.endpoint_to_fetch = self.endpoint_perpetual.to_owned()
+            }
         }
 
         Ok(())
@@ -101,7 +109,12 @@ impl Retrieve for Binance {
         if let Ok(response) = serde_json::from_str::<ResponseOnError>(&res) {
             match response.code {
                 -1003 => return Err(ExchangeResponseError::too_many_requests()),
-                -1120 => return Err(ExchangeResponseError::interval()),
+                -1120 => {
+                    return Err(ExchangeResponseError::interval(
+                        &ExchangeChoices::Binance,
+                        &self.market_type,
+                    ))
+                }
                 -1121 => return Err(ExchangeResponseError::symbol()),
                 _ => return Err(ExchangeResponseError::wrap_error(response.msg)),
             }
