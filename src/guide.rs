@@ -14,7 +14,7 @@ static SPACE_4: Lazy<String> = Lazy::new(|| " ".repeat(4));
 
 #[derive(Clone)]
 pub struct Guide {
-    command: String,
+    command_set: CommandSet,
     exchange: Option<ExchangeChoices>,
     market_type: Option<MarketType>,
     date_format: String,
@@ -22,10 +22,19 @@ pub struct Guide {
     theme: MyTheme,
 }
 
+#[derive(Clone)]
+pub struct CommandSet {
+    pub command: String,
+    pub args: Vec<(String, String)>,
+}
+
 impl Guide {
     pub fn new() -> Self {
         Guide {
-            command: r"ro-soku \".to_string() + "\n",
+            command_set: CommandSet {
+                command: r"ro-soku \".to_string() + "\n",
+                args: Vec::new(),
+            },
             exchange: None,
             market_type: None,
             date_format: "%Y-%m-%d %H:%M:%S %:z".to_string(),
@@ -42,7 +51,7 @@ impl Guide {
         }
     }
 
-    pub fn generate(&mut self) -> Result<String, Error> {
+    pub fn generate(&mut self) -> Result<CommandSet, Error> {
         let term = Term::stdout();
         term.clear_screen().unwrap();
 
@@ -59,10 +68,13 @@ impl Guide {
         println!(
             "\n{} You can use this:\n\n{}",
             style("ro-soku🕯️ command created!").green(),
-            self.command
+            self.command_set.command
         );
 
-        Ok(self.command.clone())
+        Ok(CommandSet {
+            command: self.command_set.command.clone(),
+            args: self.command_set.args.clone(),
+        })
     }
 
     fn exchange(&mut self) -> Result<(), Error> {
@@ -76,13 +88,16 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command.push_str(
+        self.command_set.command.push_str(
             &(format!(
                 r"{}--exchange {} \",
                 &*SPACE_4,
                 exchanges[index].to_lowercase()
             ) + "\n"),
         );
+        self.command_set
+            .args
+            .push(("--exchange".to_string(), exchanges[index].to_lowercase()));
 
         match exchanges[index].to_lowercase().as_str() {
             "binance" => self.exchange = Some(ExchangeChoices::Binance),
@@ -112,13 +127,16 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command.push_str(
+        self.command_set.command.push_str(
             &(format!(
                 r"{}--type {} \",
                 &*SPACE_4,
                 market_types[index].to_lowercase()
             ) + "\n"),
         );
+        self.command_set
+            .args
+            .push(("--type".to_string(), market_types[index].to_lowercase()));
 
         match market_types[index].to_lowercase().as_str() {
             "spot" => self.market_type = Some(MarketType::Spot),
@@ -151,8 +169,10 @@ impl Guide {
             })
             .interact_text()?;
 
-        self.command
+        self.command_set
+            .command
             .push_str(&(format!(r"{}--symbol {} \", &*SPACE_4, symbol) + "\n"));
+        self.command_set.args.push(("--symbol".to_string(), symbol));
 
         Ok(())
     }
@@ -177,8 +197,12 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command
+        self.command_set
+            .command
             .push_str(&(format!(r"{}--interval {} \", &*SPACE_4, intervals[index]) + "\n"));
+        self.command_set
+            .args
+            .push(("--interval".to_string(), intervals[index].to_owned()));
 
         Ok(())
     }
@@ -208,8 +232,12 @@ impl Guide {
             .unwrap()
             .to_rfc3339();
 
-        self.command
+        self.command_set
+            .command
             .push_str(&(format!(r"{}--term-start {} \", &*SPACE_4, rfc3339) + "\n"));
+        self.command_set
+            .args
+            .push(("--term-start".to_string(), rfc3339));
 
         Ok(())
     }
@@ -235,8 +263,12 @@ impl Guide {
             .unwrap()
             .to_rfc3339();
 
-        self.command
+        self.command_set
+            .command
             .push_str(&(format!(r"{}--term-end {} \", &*SPACE_4, rfc3339) + "\n"));
+        self.command_set
+            .args
+            .push(("--term-end".to_string(), rfc3339));
 
         Ok(())
     }
@@ -277,8 +309,10 @@ impl Guide {
             .collect::<Vec<_>>()
             .join(",");
 
-        self.command
+        self.command_set
+            .command
             .push_str(&(format!(r"{}--pick {} \", &*SPACE_4, picked) + "\n"));
+        self.command_set.args.push(("--pick".to_string(), picked));
 
         Ok(())
     }
@@ -294,9 +328,12 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command.push_str(
+        self.command_set.command.push_str(
             &(format!(r"{}--order {} \", &*SPACE_4, orders[index].to_lowercase()) + "\n"),
         );
+        self.command_set
+            .args
+            .push(("--order".to_string(), orders[index].to_lowercase()));
 
         Ok(())
     }
@@ -312,9 +349,12 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command.push_str(
+        self.command_set.command.push_str(
             &(format!(r"{}--format {}", &*SPACE_4, formats[index].to_lowercase()) + "\n"),
         );
+        self.command_set
+            .args
+            .push(("--format".to_string(), formats[index].to_lowercase()));
 
         Ok(())
     }
