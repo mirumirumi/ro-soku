@@ -9,7 +9,7 @@ use strum::IntoEnumIterator;
 
 use crate::{args::*, exchange::*, format::*, order::*, pick::*};
 
-const SPACE_4: &str = "     ";
+const SPACE_4: &str = "    ";
 
 #[derive(Clone)]
 pub struct Guide {
