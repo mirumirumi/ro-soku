@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, Error};
 use chrono::{Datelike, TimeZone, Utc};
@@ -116,12 +116,10 @@ impl Retrieve for Bitbank {
     }
 
     fn fit_interval_to_req(&self, interval: &DurationAndUnit) -> Result<String, Error> {
-        let mut file = File::open("data/intervals.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
+        let data = include_str!("../data/intervals.json");
 
         let intervals_map: HashMap<String, HashMap<String, Vec<String>>> =
-            serde_json::from_str(&data)?;
+            serde_json::from_str(data)?;
         let intervals = intervals_map
             .get("bitbank")
             .and_then(|market_type_map| market_type_map.get("Spot"))

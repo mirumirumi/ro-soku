@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read};
+use std::collections::HashMap;
 
 use anyhow::{ensure, Error};
 use chrono::{DateTime, Utc};
@@ -111,11 +111,9 @@ impl Guide {
     }
 
     fn market_type(&mut self) -> Result<(), Error> {
-        let mut file = File::open("data/market-types.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
+        let data = include_str!("data/market-types.json");
 
-        let symbols_map: HashMap<String, Vec<String>> = serde_json::from_str(&data)?;
+        let symbols_map: HashMap<String, Vec<String>> = serde_json::from_str(data)?;
         let market_types = symbols_map
             .get(&self.exchange.clone().unwrap().to_string())
             .unwrap();
@@ -177,12 +175,10 @@ impl Guide {
     }
 
     fn interval(&mut self) -> Result<(), Error> {
-        let mut file = File::open("data/intervals.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
+        let data = include_str!("data/intervals.json");
 
         let intervals_map: HashMap<String, HashMap<String, Vec<String>>> =
-            serde_json::from_str(&data)?;
+            serde_json::from_str(data)?;
         let intervals = intervals_map
             .get(&self.exchange.clone().unwrap().to_string())
             .and_then(|market_type_map| {

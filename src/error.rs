@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, io::Read};
+use std::collections::HashMap;
 
 use anyhow::{anyhow, Error};
 
@@ -12,12 +12,10 @@ impl ExchangeResponseError {
     }
 
     pub fn interval(exchange: &ExchangeChoices, market_type: &MarketType) -> Error {
-        let mut file = File::open("data/intervals.json").unwrap();
-        let mut data = String::new();
-        file.read_to_string(&mut data).unwrap();
+        let data = include_str!("data/intervals.json");
 
         let intervals_map: HashMap<String, HashMap<String, Vec<String>>> =
-            serde_json::from_str(&data).expect("Faild to parse `data/intervals.json` to JSON.");
+            serde_json::from_str(data).expect("Faild to parse `data/intervals.json` to JSON.");
         let intervals = intervals_map
             .get(&exchange.to_string())
             .and_then(|market_type_map| market_type_map.get(&market_type.to_string()))
