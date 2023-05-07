@@ -46,11 +46,11 @@ impl Retrieve for Okx {
             ("bar".to_string(), self.fit_interval_to_req(&args.interval)?),
             (
                 "before".to_string(), // Opposite of the word meaning
-                (args.term_start.unwrap() - 1).to_string(),
+                args.term_start.unwrap().to_string(),
             ),
             (
                 "after".to_string(), // Same as above
-                (args.term_end.unwrap() + 1).to_string(),
+                args.term_end.unwrap().to_string(),
             ),
             ("limit".to_string(), self.limit.to_string()),
         ]

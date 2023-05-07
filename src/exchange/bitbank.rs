@@ -47,6 +47,10 @@ impl Bitbank {
     /// If it crosses days or years (according to `interval`),
     /// only the first one is returned (then retrieve will repeat itself).
     fn calculate_date(term_start: i64, interval: &str) -> String {
+        // On all exchanges, there is no problem to do -1/+1 when actually fetching,
+        // but only when determining if the day has passed on bitbank, otherwise you will get the wrong result
+        let term_start = term_start + 1;
+
         let start = Utc.timestamp_millis_opt(term_start).unwrap();
 
         match interval {
@@ -167,12 +171,12 @@ impl Retrieve for Bitbank {
         let latest_ts = raws[raws.len() - 1].unixtime_msec;
         let mut result = raws;
 
-        if first_ts < term_start {
-            result.retain(|raw| term_start <= raw.unixtime_msec);
+        if first_ts <= term_start {
+            result.retain(|raw| term_start < raw.unixtime_msec);
         }
 
-        if term_end < latest_ts {
-            result.retain(|raw| raw.unixtime_msec <= term_end);
+        if term_end <= latest_ts {
+            result.retain(|raw| raw.unixtime_msec < term_end);
         }
 
         result
@@ -278,7 +282,7 @@ mod tests {
     // Expect 1st to be removed
     #[case(vec![
         Kline {
-            unixtime_msec: 1672516800000,
+            unixtime_msec: 1672516799999,
             o: 0.0,
             h: 0.0,
             l: 0.0,
@@ -301,7 +305,7 @@ mod tests {
             c: 0.0,
             v: 0.0,
         },
-    ], 1672516800001, 1672545600000, vec![
+    ], 1672516799999, 1672545600001, vec![
         Kline {
             unixtime_msec: 1672531200000,
             o: 0.0,
@@ -319,7 +323,7 @@ mod tests {
             v: 0.0,
         },
     ])]
-    // Expect last to be removed
+    // Expect latest to be removed
     #[case(vec![
         Kline {
             unixtime_msec: 1672516800000,
@@ -338,14 +342,14 @@ mod tests {
             v: 0.0,
         },
         Kline {
-            unixtime_msec: 1672545600000,
+            unixtime_msec: 1672545600001,
             o: 0.0,
             h: 0.0,
             l: 0.0,
             c: 0.0,
             v: 0.0,
         },
-    ], 1672516800000, 1672545599999, vec![
+    ], 1672516799999, 1672545600001, vec![
         Kline {
             unixtime_msec: 1672516800000,
             o: 0.0,

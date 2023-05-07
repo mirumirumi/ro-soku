@@ -74,33 +74,56 @@ pub trait Retrieve: Debug {
         let client = reqwest::blocking::Client::new();
 
         while should_continue {
+            // If the number of limits is exactly the same as the number of data required,
+            // a single request with the same start and end time may be generated,
+            // resulting in an error on some exchanges
+            args.term_start = Some(args.term_start.unwrap() - 1);
+            args.term_end = Some(args.term_end.unwrap() + 1);
+
             self.prepare(&args.clone())?;
 
             let res = self.fetch(&client)?;
             let klines = self.parse_as_kline(res);
-            let klines_asc = Order::sort_kline_asc(klines);
 
             // Most exchanges do nothing
-            let klines_asc = Self::remove_unnecessary_raws(
-                klines_asc,
+            let klines = Self::remove_unnecessary_raws(
+                klines,
                 args.term_start.unwrap(),
                 args.term_end.unwrap(),
             );
 
-            match klines_asc.last() {
-                Some(latest) => {
-                    let next_term_start = latest.unixtime_msec + args.interval.to_msec();
 
-                    if (args.term_end.unwrap()) < next_term_start {
-                        should_continue = false;
-                    } else {
-                        args.term_start = Some(next_term_start);
+            // This initialization is meaningless, only for compile error prevention
+            let mut sort_order: Order = Order::Asc;
+            if 2 <= klines.len() {
+                sort_order = determine_sort_order(&[&klines[0], &klines[1]]);
+            }
+
+            match klines.last() {
+                Some(latest) => match sort_order {
+                    Order::Asc => {
+                        let next_term_start = latest.unixtime_msec + args.interval.to_msec();
+
+                        if (args.term_end.unwrap()) < next_term_start {
+                            should_continue = false;
+                        } else {
+                            args.term_start = Some(next_term_start);
+                        }
                     }
-                }
+                    Order::Desc => {
+                        let next_term_end = latest.unixtime_msec - args.interval.to_msec();
+
+                        if next_term_end < args.term_start.unwrap() {
+                            should_continue = false;
+                        } else {
+                            args.term_end = Some(next_term_end);
+                        }
+                    }
+                },
                 None => should_continue = false,
             };
 
-            result.extend(klines_asc);
+            result.extend(klines);
         }
 
         let data = Pick::up(result, &args.pick);
@@ -145,5 +168,13 @@ impl KlineNumber {
             KlineNumber::Unixtime(n) => format!("{}", n),
             KlineNumber::Ohlcv(n) => format!("{}", n),
         }
+    }
+}
+
+fn determine_sort_order(first_two_klines: &[&Kline; 2]) -> Order {
+    if first_two_klines[0].unixtime_msec < first_two_klines[1].unixtime_msec {
+        Order::Asc
+    } else {
+        Order::Desc
     }
 }
