@@ -8,6 +8,8 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Binance {
+    params: Vec<(String, String)>,
+    endpoint_to_fetch: String,
     endpoint_spot: String,
     endpoint_perpetual: String,
     limit_spot: i32,
@@ -23,6 +25,8 @@ struct ResponseOnError {
 impl Binance {
     pub fn new() -> Self {
         Binance {
+            params: Vec::new(),
+            endpoint_to_fetch: String::new(),
             endpoint_spot: "https://data.binance.com/api/v3/klines".to_string(),
             endpoint_perpetual: "https://fapi.binance.com/fapi/v1/klines".to_string(),
             limit_spot: 1000,
@@ -57,27 +61,40 @@ impl Binance {
 }
 
 impl Retrieve for Binance {
-    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
-        let params = &[
-            ("symbol", self.fit_symbol_to_req(&args.symbol)?),
-            ("interval", self.fit_interval_to_req(&args.interval)?),
-            ("startTime", args.term_start.unwrap().to_string()),
-            ("endTime", args.term_end.unwrap().to_string()),
+    fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
+        self.params = [
+            ("symbol".to_string(), self.fit_symbol_to_req(&args.symbol)?),
             (
-                "limit",
+                "interval".to_string(),
+                self.fit_interval_to_req(&args.interval)?,
+            ),
+            (
+                "startTime".to_string(),
+                args.term_start.unwrap().to_string(),
+            ),
+            ("endTime".to_string(), args.term_end.unwrap().to_string()),
+            (
+                "limit".to_string(),
                 match args.type_ {
                     MarketType::Spot => self.limit_spot.to_string(),
                     MarketType::Perpetual => self.limit_perpetual.to_string(),
                 },
             ),
-        ];
+        ]
+        .to_vec();
 
+        match args.type_ {
+            MarketType::Spot => self.endpoint_to_fetch = self.endpoint_spot.to_owned(),
+            MarketType::Perpetual => self.endpoint_to_fetch = self.endpoint_perpetual.to_owned(),
+        }
+
+        Ok(())
+    }
+
+    fn fetch(&self, client: &Client) -> Result<String, Error> {
         let res = client
-            .get(match args.type_ {
-                MarketType::Spot => &self.endpoint_spot,
-                MarketType::Perpetual => &self.endpoint_perpetual,
-            })
-            .query(params)
+            .get(&self.endpoint_to_fetch)
+            .query(&self.params)
             .send()?
             .text()?;
 

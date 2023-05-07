@@ -71,8 +71,9 @@ fn main() -> Result<(), anyhow::Error> {
 
                 args.valdate()?;
 
-                let args: ParsedArgs = args.try_into()?;
+                let mut args: ParsedArgs = args.try_into()?;
 
+                args.exchange.prepare(&args.clone())?;
                 let data = args.exchange.retrieve(&mut args.clone())?;
                 let data = Order::sort(data, &args.order);
                 let data = args.output.format(&data);

@@ -53,6 +53,17 @@ pub enum Exchange {
 }
 
 impl Exchange {
+    pub fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
+        match self {
+            Exchange::Binance(binance) => binance.prepare(args),
+            Exchange::Bitbank(bitbank) => bitbank.prepare(args),
+            Exchange::Bitmex(bitmex) => bitmex.prepare(args),
+            Exchange::Bybit(bybit) => bybit.prepare(args),
+            Exchange::Okx(okx) => okx.prepare(args),
+            // Exchange::Kraken(kraken) => kraken.prepare(args),
+        }
+    }
+
     pub fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
@@ -66,6 +77,8 @@ impl Exchange {
 }
 
 pub trait Retrieve: Debug {
+    fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error>;
+
     fn retrieve(&self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
         let mut result: Vec<Kline> = Vec::new();
         let mut should_continue = true;
@@ -73,7 +86,7 @@ pub trait Retrieve: Debug {
 
         while should_continue {
             println!("\nfetch!!!!!!!!\n");
-            let res = self.fetch(args, &client)?;
+            let res = self.fetch(&client)?;
             let klines = self.parse_as_kline(res);
             let klines_asc = Order::sort_kline_asc(klines);
 
@@ -104,7 +117,7 @@ pub trait Retrieve: Debug {
         Ok(data)
     }
 
-    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error>;
+    fn fetch(&self, client: &Client) -> Result<String, Error>;
 
     fn fit_symbol_to_req(&self, symbol: &str) -> Result<String, Error>;
 

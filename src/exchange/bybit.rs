@@ -7,6 +7,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Bybit {
+    params: Vec<(String, String)>,
     endpoint: String,
     limit: i32,
 }
@@ -33,6 +34,7 @@ struct ResultInResponse {
 impl Bybit {
     pub fn new() -> Self {
         Bybit {
+            params: Vec::new(),
             endpoint: "https://api.bybit.com/v5/market/kline".to_string(),
             limit: 200,
         }
@@ -40,23 +42,35 @@ impl Bybit {
 }
 
 impl Retrieve for Bybit {
-    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
-        let params = &[
+    fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
+        self.params = [
             (
-                "category",
+                "category".to_string(),
                 match args.type_ {
                     MarketType::Spot => "spot".to_string(),
                     MarketType::Perpetual => "linear".to_string(),
                 },
             ),
-            ("symbol", self.fit_symbol_to_req(&args.symbol)?),
-            ("interval", self.fit_interval_to_req(&args.interval)?),
-            ("start", args.term_start.unwrap().to_string()),
-            ("end", args.term_end.unwrap().to_string()),
-            ("limit", self.limit.to_string()),
-        ];
+            ("symbol".to_string(), self.fit_symbol_to_req(&args.symbol)?),
+            (
+                "interval".to_string(),
+                self.fit_interval_to_req(&args.interval)?,
+            ),
+            ("start".to_string(), args.term_start.unwrap().to_string()),
+            ("end".to_string(), args.term_end.unwrap().to_string()),
+            ("limit".to_string(), self.limit.to_string()),
+        ]
+        .to_vec();
 
-        let res = client.get(&self.endpoint).query(params).send()?.text()?;
+        Ok(())
+    }
+
+    fn fetch(&self, client: &Client) -> Result<String, Error> {
+        let res = client
+            .get(&self.endpoint)
+            .query(&self.params)
+            .send()?
+            .text()?;
 
         let response = serde_json::from_str::<Response>(&res)
             .expect("Unexpected error! Failed to parse response (for error code) to json.");

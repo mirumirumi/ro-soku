@@ -10,6 +10,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Bitmex {
+    params: Vec<(String, String)>,
     endpoint: String,
     limit: i32,
 }
@@ -29,6 +30,7 @@ struct ErrorInResponseOnError {
 impl Bitmex {
     pub fn new() -> Self {
         Bitmex {
+            params: Vec::new(),
             endpoint: "https://www.bitmex.com/api/v1/trade/bucketed".to_string(),
             limit: 1000,
         }
@@ -44,27 +46,42 @@ impl Bitmex {
 }
 
 impl Retrieve for Bitmex {
-    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
+    fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
         if let MarketType::Spot = args.type_ {
             return Err(ExchangeResponseError::no_support_type());
         }
 
-        let params = &[
-            ("binSize", self.fit_interval_to_req(&args.interval)?),
-            ("symbol", self.fit_symbol_to_req(&args.symbol)?),
+        self.params = [
             (
-                "columns",
+                "binSize".to_string(),
+                self.fit_interval_to_req(&args.interval)?,
+            ),
+            ("symbol".to_string(), self.fit_symbol_to_req(&args.symbol)?),
+            (
+                "columns".to_string(),
                 "timestamp,open,high,low,close,volume".to_string(),
             ),
-            ("count", self.limit.to_string()),
+            ("count".to_string(), self.limit.to_string()),
             (
-                "startTime",
+                "startTime".to_string(),
                 Self::unixtime_to_rfc3339(args.term_start.unwrap()),
             ),
-            ("endTime", Self::unixtime_to_rfc3339(args.term_end.unwrap())),
-        ];
+            (
+                "endTime".to_string(),
+                Self::unixtime_to_rfc3339(args.term_end.unwrap()),
+            ),
+        ]
+        .to_vec();
 
-        let res = client.get(&self.endpoint).query(params).send()?.text()?;
+        Ok(())
+    }
+
+    fn fetch(&self, client: &Client) -> Result<String, Error> {
+        let res = client
+            .get(&self.endpoint)
+            .query(&self.params)
+            .send()?
+            .text()?;
 
         if let Ok(response) = serde_json::from_str::<ResponseOnError>(&res) {
             if response.error.message.contains("binSize") {

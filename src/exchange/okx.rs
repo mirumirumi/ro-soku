@@ -7,6 +7,7 @@ use crate::{args::*, error::*, exchange::*, unit::*};
 
 #[derive(Debug, Clone)]
 pub struct Okx {
+    params: Vec<(String, String)>,
     endpoint: String,
     limit: i32,
 }
@@ -21,6 +22,7 @@ struct Response {
 impl Okx {
     pub fn new() -> Self {
         Okx {
+            params: Vec::new(),
             endpoint: "https://www.okx.com/api/v5/market/history-candles".to_string(),
             limit: 300,
         }
@@ -28,10 +30,10 @@ impl Okx {
 }
 
 impl Retrieve for Okx {
-    fn fetch(&self, args: &ParsedArgs, client: &Client) -> Result<String, Error> {
-        let params = &[
+    fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error> {
+        self.params = [
             (
-                "instId",
+                "instId".to_string(),
                 match args.type_ {
                     MarketType::Spot => self.fit_symbol_to_req(&args.symbol)?,
                     MarketType::Perpetual => {
@@ -39,13 +41,28 @@ impl Retrieve for Okx {
                     }
                 },
             ),
-            ("bar", self.fit_interval_to_req(&args.interval)?),
-            ("before", (args.term_start.unwrap() - 1).to_string()), // Opposite of the word meaning
-            ("after", (args.term_end.unwrap() + 1).to_string()),    // Same as above
-            ("limit", self.limit.to_string()),
-        ];
+            ("bar".to_string(), self.fit_interval_to_req(&args.interval)?),
+            (
+                "before".to_string(), // Opposite of the word meaning
+                (args.term_start.unwrap() - 1).to_string(),
+            ),
+            (
+                "after".to_string(), // Same as above
+                (args.term_end.unwrap() + 1).to_string(),
+            ),
+            ("limit".to_string(), self.limit.to_string()),
+        ]
+        .to_vec();
 
-        let res = client.get(&self.endpoint).query(params).send()?.text()?;
+        Ok(())
+    }
+
+    fn fetch(&self, client: &Client) -> Result<String, Error> {
+        let res = client
+            .get(&self.endpoint)
+            .query(&self.params)
+            .send()?
+            .text()?;
 
         let response = serde_json::from_str::<Response>(&res)
             .expect("Unexpected error! Failed to parse response (for error code) to json.");
