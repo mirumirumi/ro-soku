@@ -17,7 +17,7 @@ mod unit;
 use crate::{args::*, guide::*, order::Order};
 
 fn main() -> Result<(), anyhow::Error> {
-    let timer = time::Instant::now();
+    let _timer = time::Instant::now();
     let args = Cli::parse();
 
     match &args.command {
@@ -84,9 +84,9 @@ fn main() -> Result<(), anyhow::Error> {
                     println!("{}", data);
                 }
 
-                if cfg!(debug_assertions) {
-                    println!("{:?}", timer.elapsed());
-                }
+                // if cfg!(debug_assertions) {
+                //     println!("{:?}", timer.elapsed());
+                // }
             }
         }
     }

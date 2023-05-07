@@ -1,4 +1,5 @@
 use clap::ValueEnum;
+use console::style;
 
 use crate::{pick::*, types::*};
 
@@ -35,18 +36,18 @@ impl FormatType {
 
     fn raw(&self, data: &[Raw]) -> String {
         let mut result = String::new();
-        let delimiter = ", ";
+        let delimiter = format!("{}", style(", ").dim());
 
         for raw in data.iter() {
-            result.push('[');
+            result.push_str(&format!("{}", style("[").dim()));
 
             for r in raw.iter() {
                 result.push_str(&r.iter().next().unwrap().1.as_string());
-                result.push_str(delimiter);
+                result.push_str(&delimiter);
             }
             result.truncate(result.len() - delimiter.len());
 
-            result.push_str("]\n");
+            result.push_str(&format!("{}\n", style("]").dim()));
         }
 
         result
@@ -107,49 +108,71 @@ impl FormatType {
                 match r.iter().next().unwrap().0 {
                     Pick::T => {
                         if !keys.unixtime {
-                            result.push_str(&format!(r#"{space_8}"unixtime": "#));
+                            result.push_str(&format!(
+                                r"{space_8}{}",
+                                style(r#""unixtime": "#).blue()
+                            ));
                             keys.used(Pick::T);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }
                     Pick::O => {
                         if !keys.o {
-                            result.push_str(&format!(r#"{space_8}"open": "#));
+                            result.push_str(&format!(r"{space_8}{}", style(r#""open": "#).blue()));
                             keys.used(Pick::O);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }
                     Pick::H => {
                         if !keys.h {
-                            result.push_str(&format!(r#"{space_8}"high": "#));
+                            result.push_str(&format!(r"{space_8}{}", style(r#""high": "#).blue()));
                             keys.used(Pick::H);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }
                     Pick::L => {
                         if !keys.l {
-                            result.push_str(&format!(r#"{space_8}"low": "#));
+                            result.push_str(&format!(r"{space_8}{}", style(r#""low": "#).blue()));
                             keys.used(Pick::L);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }
                     Pick::C => {
                         if !keys.c {
-                            result.push_str(&format!(r#"{space_8}"close": "#));
+                            result.push_str(&format!(r"{space_8}{}", style(r#""close": "#).blue()));
                             keys.used(Pick::C);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }
                     Pick::V => {
                         if !keys.v {
-                            result.push_str(&format!(r#"{space_8}"volume": "#));
+                            result
+                                .push_str(&format!(r"{space_8}{}", style(r#""volume": "#).blue()));
                             keys.used(Pick::V);
-                            result.push_str(&r.iter().next().unwrap().1.as_string());
+                            result.push_str(&format!(
+                                "{}",
+                                style(&r.iter().next().unwrap().1.as_string()).magenta()
+                            ));
                             result.push_str(",\n");
                         }
                     }

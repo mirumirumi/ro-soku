@@ -85,7 +85,6 @@ pub trait Retrieve: Debug {
         let client = reqwest::blocking::Client::new();
 
         while should_continue {
-            println!("\nfetch!!!!!!!!\n");
             let res = self.fetch(&client)?;
             let klines = self.parse_as_kline(res);
             let klines_asc = Order::sort_kline_asc(klines);
