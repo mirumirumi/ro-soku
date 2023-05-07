@@ -6,15 +6,16 @@ use serde::Deserialize;
 
 use crate::{args::*, error::*, exchange::*, unit::*};
 
+const ENDPOINT_SPOT: &str = "https://data.binance.com/api/v3/klines";
+const ENDPOINT_PERPETUAL: &str = "https://fapi.binance.com/fapi/v1/klines";
+const LIMIT_SPOT: i32 = 1000;
+const LIMIT_PERPETUAL: i32 = 1500;
+
 #[derive(Debug, Clone)]
 pub struct Binance {
     params: Vec<(String, String)>,
     market_type: MarketType,
-    endpoint_to_fetch: String,
-    endpoint_spot: String,
-    endpoint_perpetual: String,
-    limit_spot: i32,
-    limit_perpetual: i32,
+    endpoint: String,
 }
 
 #[derive(Deserialize)]
@@ -28,11 +29,7 @@ impl Binance {
         Binance {
             params: Vec::new(),
             market_type: MarketType::Spot,
-            endpoint_to_fetch: String::new(),
-            endpoint_spot: "https://data.binance.com/api/v3/klines".to_string(),
-            endpoint_perpetual: "https://fapi.binance.com/fapi/v1/klines".to_string(),
-            limit_spot: 1000,
-            limit_perpetual: 1500,
+            endpoint: String::new(),
         }
     }
 
@@ -46,17 +43,17 @@ impl Binance {
         let endpoint = match random_number {
             0 => {
                 // This means we can use `https://api.binance.com` as is
-                self.endpoint_spot.clone()
+                self.endpoint.clone()
             }
             num => {
                 let re = Regex::new(r"https://api\.binance").unwrap();
-                re.replace(&self.endpoint_spot, format!("https://api{}.binance", num))
+                re.replace(&self.endpoint, format!("https://api{}.binance", num))
                     .to_string()
             }
         };
 
         Binance {
-            endpoint_spot: endpoint,
+            endpoint,
             ..self.clone()
         }
     }
@@ -78,8 +75,8 @@ impl Retrieve for Binance {
             (
                 "limit".to_string(),
                 match args.type_ {
-                    MarketType::Spot => self.limit_spot.to_string(),
-                    MarketType::Perpetual => self.limit_perpetual.to_string(),
+                    MarketType::Spot => LIMIT_SPOT.to_string(),
+                    MarketType::Perpetual => LIMIT_PERPETUAL.to_string(),
                 },
             ),
         ]
@@ -88,11 +85,11 @@ impl Retrieve for Binance {
         match args.type_ {
             MarketType::Spot => {
                 self.market_type = MarketType::Spot;
-                self.endpoint_to_fetch = self.endpoint_spot.to_owned()
+                self.endpoint = ENDPOINT_SPOT.to_string()
             }
             MarketType::Perpetual => {
                 self.market_type = MarketType::Perpetual;
-                self.endpoint_to_fetch = self.endpoint_perpetual.to_owned()
+                self.endpoint = ENDPOINT_PERPETUAL.to_string()
             }
         }
 
@@ -101,7 +98,7 @@ impl Retrieve for Binance {
 
     fn fetch(&self, client: &Client) -> Result<String, Error> {
         let res = client
-            .get(&self.endpoint_to_fetch)
+            .get(&self.endpoint)
             .query(&self.params)
             .send()?
             .text()?;

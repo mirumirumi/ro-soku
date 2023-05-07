@@ -4,13 +4,12 @@ use anyhow::{ensure, Error};
 use chrono::{DateTime, Utc};
 use console::{style, Style, Term};
 use dialoguer::{theme::ColorfulTheme, Input, MultiSelect, Select};
-use once_cell::sync::Lazy;
 use regex::Regex;
 use strum::IntoEnumIterator;
 
 use crate::{args::*, exchange::*, format::*, order::*, pick::*};
 
-static SPACE_4: Lazy<String> = Lazy::new(|| " ".repeat(4));
+const SPACE_4: &str = "     ";
 
 #[derive(Clone)]
 pub struct Guide {
@@ -91,7 +90,7 @@ impl Guide {
         self.command_set.command.push_str(
             &(format!(
                 r"{}--exchange {} \",
-                &*SPACE_4,
+                SPACE_4,
                 exchanges[index].to_lowercase()
             ) + "\n"),
         );
@@ -130,7 +129,7 @@ impl Guide {
         self.command_set.command.push_str(
             &(format!(
                 r"{}--type {} \",
-                &*SPACE_4,
+                SPACE_4,
                 market_types[index].to_lowercase()
             ) + "\n"),
         );
@@ -171,7 +170,7 @@ impl Guide {
 
         self.command_set
             .command
-            .push_str(&(format!(r"{}--symbol {} \", &*SPACE_4, symbol) + "\n"));
+            .push_str(&(format!(r"{}--symbol {} \", SPACE_4, symbol) + "\n"));
         self.command_set.args.push(("--symbol".to_string(), symbol));
 
         Ok(())
@@ -199,7 +198,7 @@ impl Guide {
 
         self.command_set
             .command
-            .push_str(&(format!(r"{}--interval {} \", &*SPACE_4, intervals[index]) + "\n"));
+            .push_str(&(format!(r"{}--interval {} \", SPACE_4, intervals[index]) + "\n"));
         self.command_set
             .args
             .push(("--interval".to_string(), intervals[index].to_owned()));
@@ -234,7 +233,7 @@ impl Guide {
 
         self.command_set
             .command
-            .push_str(&(format!(r"{}--term-start {} \", &*SPACE_4, rfc3339) + "\n"));
+            .push_str(&(format!(r"{}--term-start {} \", SPACE_4, rfc3339) + "\n"));
         self.command_set
             .args
             .push(("--term-start".to_string(), rfc3339));
@@ -265,7 +264,7 @@ impl Guide {
 
         self.command_set
             .command
-            .push_str(&(format!(r"{}--term-end {} \", &*SPACE_4, rfc3339) + "\n"));
+            .push_str(&(format!(r"{}--term-end {} \", SPACE_4, rfc3339) + "\n"));
         self.command_set
             .args
             .push(("--term-end".to_string(), rfc3339));
@@ -311,7 +310,7 @@ impl Guide {
 
         self.command_set
             .command
-            .push_str(&(format!(r"{}--pick {} \", &*SPACE_4, picked) + "\n"));
+            .push_str(&(format!(r"{}--pick {} \", SPACE_4, picked) + "\n"));
         self.command_set.args.push(("--pick".to_string(), picked));
 
         Ok(())
@@ -328,9 +327,9 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command_set.command.push_str(
-            &(format!(r"{}--order {} \", &*SPACE_4, orders[index].to_lowercase()) + "\n"),
-        );
+        self.command_set
+            .command
+            .push_str(&(format!(r"{}--order {} \", SPACE_4, orders[index].to_lowercase()) + "\n"));
         self.command_set
             .args
             .push(("--order".to_string(), orders[index].to_lowercase()));
@@ -349,9 +348,9 @@ impl Guide {
             .default(0)
             .interact()?;
 
-        self.command_set.command.push_str(
-            &(format!(r"{}--format {}", &*SPACE_4, formats[index].to_lowercase()) + "\n"),
-        );
+        self.command_set
+            .command
+            .push_str(&(format!(r"{}--format {}", SPACE_4, formats[index].to_lowercase()) + "\n"));
         self.command_set
             .args
             .push(("--format".to_string(), formats[index].to_lowercase()));

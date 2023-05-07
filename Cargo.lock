@@ -1047,7 +1047,6 @@ dependencies = [
  "clap",
  "console",
  "dialoguer",
- "once_cell",
  "rand",
  "regex",
  "reqwest",
