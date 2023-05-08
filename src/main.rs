@@ -14,7 +14,7 @@ mod pick;
 mod types;
 mod unit;
 
-use crate::{args::*, guide::*, order::Order};
+use crate::{args::*, guide::*};
 
 fn main() -> Result<(), anyhow::Error> {
     let _timer = time::Instant::now();
@@ -72,15 +72,12 @@ fn main() -> Result<(), anyhow::Error> {
                 args.valdate()?;
 
                 let mut args: ParsedArgs = args.try_into()?;
-
                 let data = args.exchange.retrieve(&mut args.clone())?;
-                let data = Order::sort(data, &args.order);
-                let data = args.output.format(&data);
 
                 if data.is_empty() {
                     println!("No data");
                 } else {
-                    println!("{}", data);
+                    println!("{}", args.output.format(&data));
                 }
 
                 // if cfg!(debug_assertions) {

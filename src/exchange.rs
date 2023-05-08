@@ -126,7 +126,9 @@ pub trait Retrieve: Debug {
             result.extend(klines);
         }
 
-        let data = Pick::up(result, &args.pick);
+        let data = Order::sort(result, &args.order);
+        let data = Pick::up(data, &args.pick);
+
         Ok(data)
     }
 
