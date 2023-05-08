@@ -1,0 +1,21 @@
+name: cron-test
+
+on:
+  schedule:
+    - cron: "0 8 * * 6"  # Every Saturday at 5:00(am) in JST
+
+jobs:
+  cron-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Build
+        run: |
+          cargo build --release
+
+      - name: Exec integration tests
+        run: |
+          sh scripts/integration-test.sh

@@ -1,20 +1,16 @@
-name: unit-test
+name: release
 
 on:
   push:
     branches:
-      - main
       - dev
 
 jobs:
   unit-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
-
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-
       - name: Exec unit tests
         run: |
-          cargo test
+          sh scripts/unit-test.sh
