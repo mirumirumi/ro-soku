@@ -69,6 +69,11 @@ impl Guide {
             style("ro-soku🕯️ command created!").green(),
             self.command_set.command
         );
+        println!(
+            "{}\n{}",
+            style("use for copy and paste (same as above):").dim(),
+            self.command_set.command.replace("\\\n    -", "-")
+        );
 
         Ok(CommandSet {
             command: self.command_set.command.clone(),
