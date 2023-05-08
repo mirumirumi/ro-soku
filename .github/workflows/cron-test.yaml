@@ -1,3 +1,5 @@
+# act -W ./.github/workflows/cron-test.yaml
+
 name: cron-test
 
 on:
@@ -18,4 +20,4 @@ jobs:
 
       - name: Exec integration tests
         run: |
-          sh scripts/integration-test.sh
+          bash scripts/integration-test.sh

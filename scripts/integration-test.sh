@@ -1,15 +1,38 @@
-# act -W ./.github/workflows/cron-test.yaml
+results=()
 
-echo "Starting tests for Binance spot" && sh ./scripts/exchanges/binance/spot.sh
-echo "Starting tests for Binance perpetual" && sh ./scripts/exchanges/binance/perpetual.sh
+execute_tests() {
+    echo "Starting tests for $1"
+    shift
+    "$@"
+    local result=$?
+    results+=($result)
+    return $result
+}
 
-echo "Starting tests for bitbank spot" && sh ./scripts/exchanges/bitbank/spot.sh
+execute_tests "Binance spot" bash ./scripts/exchanges/binance/spot.sh
+execute_tests "Binance perpetual" bash ./scripts/exchanges/binance/perpetual.sh
 
-echo "Starting tests for bitmex perpetual" && sh ./scripts/exchanges/bitmex/perpetual.sh
+execute_tests "bitbank spot" bash ./scripts/exchanges/bitbank/spot.sh
 
-echo "Starting tests for Bybit spot" && sh ./scripts/exchanges/bybit/spot.sh
-echo "Starting tests for Bybit perpetual" && sh ./scripts/exchanges/bybit/perpetual.sh
+execute_tests "bitmex perpetual" bash ./scripts/exchanges/bitmex/perpetual.sh
 
-echo "Starting tests for OKX spot" && sh ./scripts/exchanges/okx/spot.sh
-echo "Starting tests for OKX perpetual" && sh ./scripts/exchanges/okx/perpetual.sh
+execute_tests "Bybit spot" bash ./scripts/exchanges/bybit/spot.sh
+execute_tests "Bybit perpetual" bash ./scripts/exchanges/bybit/perpetual.sh
 
+execute_tests "OKX spot" bash ./scripts/exchanges/okx/spot.sh
+execute_tests "OKX perpetual" bash ./scripts/exchanges/okx/perpetual.sh
+
+all_successful=true
+for result in "${results[@]}"; do
+    if [ "$result" -ne 0 ]; then
+        all_successful=false
+        break
+    fi
+done
+
+if $all_successful; then
+    echo "✅ Final result: Succeeded!"
+else
+    echo "❌ Final result: Failed."
+    exit 1
+fi
