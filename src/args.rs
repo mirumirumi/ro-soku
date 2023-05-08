@@ -82,7 +82,7 @@ impl Cli {
     pub fn valdate(&self) -> Result<(), Error> {
         let mut errors: Vec<String> = Vec::new();
 
-        if let Err(e) = self.exists_command_set() {
+        if let Err(e) = self.exists_require_options() {
             errors.push(format!("  - {e}"));
         }
 
@@ -106,34 +106,18 @@ impl Cli {
         Ok(())
     }
 
-    fn exists_command_set(&self) -> Result<(), Error> {
-        if self.past.unwrap() {
-            ensure!(
-                self.range.is_some(),
-                "If you use `--past`, you must also use `--range`."
-            );
-        }
-
-        if self.range.is_some() {
-            ensure!(
-                self.past.unwrap(),
-                "If you use `--range`, you must also use `--past`."
-            );
-        }
-
-        if self.term_start.is_some() {
-            ensure!(
-                self.term_end.is_some(),
-                "If you use `--term-start`, you must also use `--term-end`."
-            );
-        }
-
-        if self.term_end.is_some() {
-            ensure!(
-                self.term_start.is_some(),
-                "If you use `--term-end`, you must also use `--term-start`."
-            );
-        }
+    fn exists_require_options(&self) -> Result<(), Error> {
+        ensure!(
+            (self.past.unwrap()
+                && self.range.is_some()
+                && self.term_start.is_none()
+                && self.term_end.is_none())
+                || (!self.past.unwrap()
+                    && self.range.is_none()
+                    && self.term_start.is_some()
+                    && self.term_end.is_some()),
+            "You must use set of `--past` and `--range`, or set of `--term-start` and `--term-end`."
+        );
 
         Ok(())
     }

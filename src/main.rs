@@ -61,7 +61,7 @@ fn main() -> Result<(), anyhow::Error> {
 
                 let mut child = Command::new(current_exe)
                     .args(["--past"])
-                    .args(["--range", "45min"])
+                    .args(["--range", "150min"])
                     .spawn()
                     .unwrap();
 
