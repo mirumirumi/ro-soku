@@ -208,16 +208,15 @@ impl Guide {
 
         let term_start = Input::with_theme(&self.theme.0)
             .with_prompt(
-                "When is the starting period for the data you want? \n  \
-                Please enter in the following format: YYYY-MM-DD HH:MM:SS (+/-)TT:00 \n  \
-                (Always want the latest data? See the `ro-soku --help`.)",
+                "When is the starting period for the data you want? \
+                (always want the latest data? See the `ro-soku --help`.)",
             )
             .with_initial_text(&now_formatted)
             .validate_with(|input: &String| {
                 ensure!(
                     re.is_match(input)
                         && DateTime::parse_from_str(input, &self.date_format).is_ok(),
-                    "Invalid timestamp format."
+                    "Invalid timestamp format. Please enter the following format: YYYY-MM-DD HH:MM:SS (+|-)TT:00"
                 );
                 Ok(())
             })
@@ -248,7 +247,7 @@ impl Guide {
                 ensure!(
                     re.is_match(input)
                         && DateTime::parse_from_str(input, &self.date_format).is_ok(),
-                    "Invalid timestamp format."
+                    "Invalid timestamp format. Please enter the following format: YYYY-MM-DD HH:MM:SS (+/-)TT:00"
                 );
                 Ok(())
             })
