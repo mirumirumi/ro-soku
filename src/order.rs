@@ -14,8 +14,8 @@ pub enum Order {
 
 impl Order {
     /// Use to print finally result
-    pub fn sort(mut data: Vec<Raw>, order: &Self) -> Vec<Raw> {
-        let compare = |a: &Raw, b: &Raw| {
+    pub fn sort(mut data: Vec<Row>, order: &Self) -> Vec<Row> {
+        let compare = |a: &Row, b: &Row| {
             let unixtime_a = a.iter().flat_map(|map| map.get(&Pick::T)).next().unwrap();
             let unixtime_b = b.iter().flat_map(|map| map.get(&Pick::T)).next().unwrap();
             unixtime_a

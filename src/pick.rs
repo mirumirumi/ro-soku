@@ -31,10 +31,10 @@ pub enum Pick {
 }
 
 impl Pick {
-    pub fn up(data: Vec<Kline>, pick: &[Self]) -> Vec<Raw> {
+    pub fn up(data: Vec<Kline>, pick: &[Self]) -> Vec<Row> {
         use Pick::*;
 
-        let mut result: Vec<Raw> = Vec::new();
+        let mut result: Vec<Row> = Vec::new();
 
         for (i, d) in data.iter().enumerate() {
             result.push(Vec::new());
@@ -237,7 +237,7 @@ mod tests {
             .cloned()
             .collect::<HashMap<_, _>>()],
     ])]
-    fn test_up_with_parameters(#[case] input: Vec<Pick>, #[case] expected: Vec<Raw>) {
+    fn test_up_with_parameters(#[case] input: Vec<Pick>, #[case] expected: Vec<Row>) {
         let data = vec![
             Kline {
                 unixtime_msec: 1682325360000,

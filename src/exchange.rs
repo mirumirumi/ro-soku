@@ -53,7 +53,7 @@ pub enum Exchange {
 }
 
 impl Exchange {
-    pub fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+    pub fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Row>, Error> {
         match self {
             Exchange::Binance(binance) => binance.retrieve(args),
             Exchange::Bitbank(bitbank) => bitbank.retrieve(args),
@@ -68,7 +68,7 @@ impl Exchange {
 pub trait Retrieve: Debug {
     fn prepare(&mut self, args: &ParsedArgs) -> Result<(), Error>;
 
-    fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Raw>, Error> {
+    fn retrieve(&mut self, args: &mut ParsedArgs) -> Result<Vec<Row>, Error> {
         let mut result: Vec<Kline> = Vec::new();
         let mut should_continue = true;
         let client = reqwest::blocking::Client::new();

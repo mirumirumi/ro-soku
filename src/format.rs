@@ -18,7 +18,7 @@ pub enum FormatType {
 }
 
 impl FormatType {
-    pub fn format(&self, data: &[Raw]) -> String {
+    pub fn format(&self, data: &[Row]) -> String {
         let mut result = match self {
             FormatType::Raw => self.raw(data),
             FormatType::Csv => self.csv(data),
@@ -34,7 +34,7 @@ impl FormatType {
         result
     }
 
-    fn raw(&self, data: &[Raw]) -> String {
+    fn raw(&self, data: &[Row]) -> String {
         let mut result = String::new();
         let delimiter = format!("{}", style(", ").dim());
 
@@ -53,7 +53,7 @@ impl FormatType {
         result
     }
 
-    fn csv(&self, data: &[Raw]) -> String {
+    fn csv(&self, data: &[Row]) -> String {
         let mut result = String::new();
         let delimiter = ",";
 
@@ -70,7 +70,7 @@ impl FormatType {
         result
     }
 
-    fn tsv(&self, data: &[Raw]) -> String {
+    fn tsv(&self, data: &[Row]) -> String {
         let mut result = String::new();
         let delimiter = "\t";
 
@@ -87,7 +87,7 @@ impl FormatType {
         result
     }
 
-    fn json(&self, data: &[Raw]) -> String {
+    fn json(&self, data: &[Row]) -> String {
         /*
         In JSON, duplicate keys are not allowed, so if there is data with duplicate Pick values,
         it cannot be directly converted to JSON. However,checking input commands across both
