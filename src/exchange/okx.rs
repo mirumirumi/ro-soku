@@ -112,7 +112,7 @@ impl Retrieve for Okx {
         let result = match interval.1 {
             TermUnit::Sec => return Err(anyhow!("OKX does not support candlestick of seconds")),
             TermUnit::Min => format!("{}{}", number, unit.to_lowercase().chars().next().unwrap()),
-            TermUnit::Hour => format!("{}{}", number, unit.to_lowercase().chars().next().unwrap()),
+            TermUnit::Hour => format!("{}{}", number, "H"),
             TermUnit::Day => return Err(anyhow!("OKX does not support candlestick of days")),
             TermUnit::Week => return Err(anyhow!("OKX does not support candlestick of weeks")),
             TermUnit::Month => return Err(anyhow!("OKX does not support candlestick of months")),

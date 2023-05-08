@@ -118,7 +118,7 @@ impl Retrieve for Bybit {
         let result = match interval.1 {
             TermUnit::Sec => return Err(anyhow!("Bybit does not support candlestick of seconds")),
             TermUnit::Min => interval.0.to_string(),
-            TermUnit::Hour => (interval.0 * 60).to_string(),
+            TermUnit::Hour => (interval.0 as i32 * 60).to_string(),
             TermUnit::Day => {
                 if interval.0 != 1 {
                     return Err(anyhow!("warn: In Bybit, when using `day` units, only `1` number can be used. Continue processing as `1day`."));
