@@ -92,7 +92,6 @@ pub trait Retrieve: Debug {
                 args.term_end.unwrap(),
             );
 
-
             // This initialization is meaningless, only for compile error prevention
             let mut sort_order: Order = Order::Asc;
             if 2 <= klines.len() {
