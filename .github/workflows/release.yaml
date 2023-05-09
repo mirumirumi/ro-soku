@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  release:
+  linux-windows:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -17,14 +17,65 @@ jobs:
         run: |
           sh scripts/unit-test.sh
 
-      - name: Build
+      - name: Build for Linux
         run: |
           cargo build --release
+
+      - name: Build for Windows
+        run: |
+          cargo install cross
+          cross build --target x86_64-pc-windows-gnu --release
 
       - name: Exec integration tests
         run: |
           bash scripts/integration-test.sh
 
-      - name: Release for each OS
+      - name: Get the application version
         run: |
-          sh scripts/release.sh
+          version=$(grep -E '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=${version}" >> $GITHUB_ENV
+
+      - name: Create a tag
+        uses: rickstaa/action-create-tag@v1
+        with:
+          tag: "${{ env.version }}"
+
+      - name: Create a release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: ./target/x86_64-unknown-linux-gnu/release/ro-soku_x86_64_linux, ./target/x86_64-pc-windows-gnu/release/ro-soku_x64_64_win, ./target/x86_64-apple-darwin/release/ro-soku_x86_64_mac, ./target/aarch64-apple-darwin/release/ro-soku_aarch64_mac
+          tag: "${{ env.version }}"
+          token: ${{ secrets.PAT }}
+
+  mac:
+    runs-on: macos-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Build for Mac
+        run: |
+          cargo install cross
+          cross build --target x86_64-apple-darwin --release
+          cross build --target aarch64-apple-darwin --release
+          sha256_mac_x86=$(sha256sum ./target/x86_64-apple-darwin/release/ro-soku)
+          sha256_mac_aarch64=$(sha256sum ./target/aarch64-apple-darwin/release/ro-soku)
+          sha256_mac_x86=${sha256_mac:0:64}
+          sha256_mac_aarch64=${sha256_mac:0:64}
+          echo "sha256_mac_x86=${sha256_mac_x86}" >> $GITHUB_ENV
+          echo "sha256_mac_aarch64=${sha256_mac_aarch64}" >> $GITHUB_ENV
+
+      - name: Get the application version
+        run: |
+          version=$(grep -E '^version' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+          echo "version=${version}" >> $GITHUB_ENV
+
+      - name: Requeste to workflow of homebrew Ruby repo
+        run: |
+          curl \
+              -X POST \
+              -H "Accept: application/vnd.github.v3+json" \
+              -H "Authorization: token ${{ secrets.PAT }}" \
+              -d '{"ref": "main", "inputs": {"version": "${{ env.version }}", "sha256_mac_x86": "${{ env.sha256_mac_x86 }}", "sha256_mac_aarch64": "${{ env.sha256_mac_aarch64 }}"}}' \
+              https://api.github.com/repos/mirumirumi/homebrew-ro-soku/actions/workflows/release.yaml/dispatches
