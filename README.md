@@ -43,7 +43,7 @@ Features:
 
 ## Install
 
-### Mac
+### Mac (Intel, Apple Silicon)
 
 ```bash
 brew tap mirumirumi/ro-soku

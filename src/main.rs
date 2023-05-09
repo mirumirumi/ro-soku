@@ -74,6 +74,10 @@ fn main() -> Result<(), anyhow::Error> {
                 let mut args: ParsedArgs = args.try_into()?;
                 let data = args.exchange.retrieve(&mut args.clone())?;
 
+                if env::var("CI").is_ok() {
+                    return Ok(());
+                }
+
                 if data.is_empty() {
                     println!("No data");
                 } else {
