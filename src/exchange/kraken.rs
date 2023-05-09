@@ -10,7 +10,7 @@ use crate::{args::*, exchange::*, unit::*};
 //////////////////////////////////////////////////////////////////////////////
 
 /// Kraken was not implemented due to a buggy API.
-/// The `since` function does not work at all, and it is endlessly tedious
+/// The `since` parameter does not work at all, and it is endlessly tedious
 /// to get data for the intended time period. There was some information on
 /// the official blog that you can use the `/Trades` endpoint in addition
 /// to the `/OHLC` endpoint, but I doubt that `since` works here too,
