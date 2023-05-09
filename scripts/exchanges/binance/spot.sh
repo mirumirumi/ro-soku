@@ -16,7 +16,7 @@ execute_command \
     --symbol BTC/USDT \
     --interval 1sec \
     --term-start 2023-01-10T23:00:00Z \
-    --term-end 2023-01-12T00:00:00Z \
+    --term-end 2023-01-10T23:01:00Z \
     --pick t,o,h,l,c,v \
     --order asc \
     --format raw

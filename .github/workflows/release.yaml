@@ -58,7 +58,7 @@ jobs:
         run: |
           cargo install cross
           cross build --target x86_64-apple-darwin --release
-          sha256_mac_x86=$(sha256sum ./target/x86_64-apple-darwin/release/ro-soku)
+          sha256_mac_x86=$(shasum -a 256 ./target/x86_64-apple-darwin/release/ro-soku)
           sha256_mac_x86=${sha256_mac:0:64}
           echo "sha256_mac_x86=${sha256_mac_x86}" >> $GITHUB_ENV
 
