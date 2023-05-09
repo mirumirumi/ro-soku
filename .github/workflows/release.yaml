@@ -58,13 +58,9 @@ jobs:
         run: |
           cargo install cross
           cross build --target x86_64-apple-darwin --release
-          cross build --target aarch64-apple-darwin --release
           sha256_mac_x86=$(sha256sum ./target/x86_64-apple-darwin/release/ro-soku)
-          sha256_mac_aarch64=$(sha256sum ./target/aarch64-apple-darwin/release/ro-soku)
           sha256_mac_x86=${sha256_mac:0:64}
-          sha256_mac_aarch64=${sha256_mac:0:64}
           echo "sha256_mac_x86=${sha256_mac_x86}" >> $GITHUB_ENV
-          echo "sha256_mac_aarch64=${sha256_mac_aarch64}" >> $GITHUB_ENV
 
       - name: Get the application version
         run: |
@@ -77,5 +73,5 @@ jobs:
               -X POST \
               -H "Accept: application/vnd.github.v3+json" \
               -H "Authorization: token ${{ secrets.PAT }}" \
-              -d '{"ref": "main", "inputs": {"version": "${{ env.version }}", "sha256_mac_x86": "${{ env.sha256_mac_x86 }}", "sha256_mac_aarch64": "${{ env.sha256_mac_aarch64 }}"}}' \
+              -d '{"ref": "main", "inputs": {"version": "${{ env.version }}", "sha256_mac_x86": "${{ env.sha256_mac_x86 }}"}}' \
               https://api.github.com/repos/mirumirumi/homebrew-ro-soku/actions/workflows/release.yaml/dispatches
