@@ -1,5 +1,5 @@
 ro-soku() {
-    ./target/release/ro-soku "$@"
+    ./target/release/ro-soku_x86_64_linux "$@"
 }
 
 results=()
