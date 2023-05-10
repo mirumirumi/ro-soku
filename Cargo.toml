@@ -1,6 +1,6 @@
 [package]
 name = "ro-soku"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["mirumi <mail@mirumi.tech>"]
 edition = "2021"
 description = "Retrieve OHLCV ro-soku (means a candle in Japanese) from any exchange🕯️"

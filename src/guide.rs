@@ -212,15 +212,11 @@ impl Guide {
         let re = Regex::new(&self.regexp).unwrap();
 
         let term_start = Input::with_theme(&self.theme.0)
-            .with_prompt(
-                "When is the starting period for the data you want? \
-                (always want the latest data? See the `ro-soku --help`.)",
-            )
+            .with_prompt("When is the starting period for the data you want?")
             .with_initial_text(&now_formatted)
             .validate_with(|input: &String| {
                 ensure!(
-                    re.is_match(input)
-                        && DateTime::parse_from_str(input, &self.date_format).is_ok(),
+                    re.is_match(input) && DateTime::parse_from_str(input, &self.date_format).is_ok(),
                     "Invalid timestamp format. Please enter the following format: YYYY-MM-DD HH:MM:SS (+|-)TT:00"
                 );
                 Ok(())
