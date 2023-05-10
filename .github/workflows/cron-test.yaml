@@ -18,6 +18,7 @@ jobs:
       - name: Build
         run: |
           cargo build --release
+          mv ./target/release/ro-soku ./target/release/ro-soku_x86_64_linux
 
       - name: Exec integration tests
         run: |
