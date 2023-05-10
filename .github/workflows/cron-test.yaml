@@ -3,6 +3,7 @@
 name: cron-test
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 8 * * 6"  # Every Saturday at 5:00(am) in JST
 
