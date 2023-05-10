@@ -84,6 +84,7 @@ jobs:
         uses: rickstaa/action-create-tag@v1
         with:
           tag: "${{ env.version }}"
+          force_push_tag: true
 
       - name: Create a release
         uses: ncipollo/release-action@v1
@@ -91,3 +92,4 @@ jobs:
           artifacts: ./target/release/ro-soku_x86_64_linux, ./target/x86_64-pc-windows-gnu/release/ro-soku.exe, ./target/ro-soku_x86_64_mac
           tag: "${{ env.version }}"
           token: ${{ secrets.PAT }}
+          skipIfReleaseExists: true
