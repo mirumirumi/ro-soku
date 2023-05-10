@@ -50,6 +50,18 @@ brew tap mirumirumi/ro-soku
 brew install ro-soku
 ```
 
+<details>
+<summary>update / uninstall</summary>
+
+```bash
+# Update:
+brew upgrade ro-soku
+
+# Uninstall:
+brew uninstall ro-soku
+```
+</details>
+
 ### Linux
 
 ```bash
@@ -57,12 +69,34 @@ wget https://raw.githubusercontent.com/mirumirumi/ro-soku/main/scripts/install.s
 sh /tmp/install.sh
 ```
 
+<details>
+<summary>update / uninstall</summary>
+
+```bash
+# Update is the same as install
+
+# Uninstall:
+rm -f /usr/local/bin/ro-soku
+```
+</details>
+
 ### Windows
 
 ```bash
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/mirumirumi/ro-soku/main/scripts/install.ps1" -OutFile "$env:TEMP\install.ps1"
 Set-ExecutionPolicy Bypass -Scope Process -Force; & "$env:TEMP\install.ps1"
 ```
+
+<details>
+<summary>update / uninstall</summary>
+
+```bash
+# Update is the same as install
+
+# Uninstall:
+Remove-Item -Recurse -Force "$env:USERPROFILE\AppData\Local\ro-soku"
+```
+</details>
 
 ## Basic Usage
 
