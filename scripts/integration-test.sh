@@ -19,8 +19,11 @@ execute_tests "bitbank spot" bash ./scripts/exchanges/bitbank/spot.sh
 
 execute_tests "bitmex perpetual" bash ./scripts/exchanges/bitmex/perpetual.sh
 
-execute_tests "Bybit spot" bash ./scripts/exchanges/bybit/spot.sh
-execute_tests "Bybit perpetual" bash ./scripts/exchanges/bybit/perpetual.sh
+if [ -z "$CI" ]; then
+    # Same as above (2023/7 ~)
+    execute_tests "Bybit spot" bash ./scripts/exchanges/bybit/spot.sh
+    execute_tests "Bybit perpetual" bash ./scripts/exchanges/bybit/perpetual.sh
+fi
 
 execute_tests "OKX spot" bash ./scripts/exchanges/okx/spot.sh
 execute_tests "OKX perpetual" bash ./scripts/exchanges/okx/perpetual.sh
