@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use crate::{args::*, error::*, exchange::*, unit::*};
 
-const ENDPOINT_SPOT: &str = "https://data.binance.com/api/v3/klines";
+const ENDPOINT_SPOT: &str = "https://data-api.binance.vision/api/v3/klines";
 const ENDPOINT_PERPETUAL: &str = "https://fapi.binance.com/fapi/v1/klines";
 const LIMIT_SPOT: i32 = 1000;
 const LIMIT_PERPETUAL: i32 = 1500;
