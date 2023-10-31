@@ -156,8 +156,11 @@ impl Cli {
 
     fn check_symbol_format(&self) -> Result<(), Error> {
         ensure!(
-            self.symbol.chars().all(|c| c.is_uppercase() || c == '/') && self.symbol.contains('/'),
-            "Symbol pair must be in uppercase and contain `/`."
+            self.symbol
+                .chars()
+                .all(|c| c.is_uppercase() || c.is_ascii_digit() || c == '/')
+                && self.symbol.contains('/'),
+            "Symbol pair must be in uppercase or number and contain `/`."
         );
         Ok(())
     }

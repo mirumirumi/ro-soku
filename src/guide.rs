@@ -164,8 +164,11 @@ impl Guide {
             .with_initial_text("BTC/USDT")
             .validate_with(|input: &String| {
                 ensure!(
-                    input.chars().all(|c| c.is_uppercase() || c == '/') && input.contains('/'),
-                    "Symbol pair must be in uppercase and contain `/`."
+                    input
+                        .chars()
+                        .all(|c| c.is_uppercase() || c.is_ascii_digit() || c == '/')
+                        && input.contains('/'),
+                    "Symbol pair must be in uppercase or number and contain `/`."
                 );
                 Ok(())
             })
